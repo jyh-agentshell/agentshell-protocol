@@ -1,0 +1,177 @@
+openapi: "3.1.0"
+info:
+  title: AgentShell API
+  description: |
+    AgentShell .NET 网关的 REST API 契约。
+
+    **安全模型**: 所有端点需要 Bearer JWT 认证。
+    **信任边界**: 本 API 只传输信令 JSON，不传输终端数据、代码内容或 SSH 密钥。
+  version: "1.0.0"
+  contact:
+    name: AgentShell Project
+
+servers:
+  - url: https://api.agentshell.dev/v1
+    description: 生产环境
+
+security:
+  - bearerAuth: []
+
+paths:
+  /sessions/report:
+    post:
+      summary: 守护进程上报 Agent 状态
+      description: 守护进程定期调用此端点更新 Agent 会话状态
+      operationId: reportAgentState
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/events/agent-state.json"
+      responses:
+        "200":
+          description: 上报成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accepted:
+                    type: boolean
+                  server_timestamp:
+                    type: string
+                    format: date-time
+                  upgrade_required:
+                    type: boolean
+                    description: daemon 版本过低，需要更新
+                  latest_version:
+                    type: string
+                    description: 最新 daemon 版本号
+                  latest_sha256:
+                    type: string
+                    description: 最新二进制 SHA256
+        "401":
+          description: 未认证
+        "429":
+          description: 上报过于频繁
+
+  /sessions/lifecycle:
+    post:
+      summary: 守护进程上报会话生命周期事件
+      operationId: reportSessionLifecycle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/events/session-lifecycle.json"
+      responses:
+        "200":
+          description: 上报成功
+
+  /devices/bind:
+    post:
+      summary: 发起设备绑定
+      description: App 扫码后调用此端点发起设备绑定流程
+      operationId: initiateBinding
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: ["binding_code", "device_id"]
+              properties:
+                binding_code:
+                  type: string
+                  description: 6 位临时绑定码
+                device_id:
+                  type: string
+                  description: 设备标识
+                device_name:
+                  type: string
+                  description: 设备名称（如「Pixel 9 Pro」）
+      responses:
+        "200":
+          description: 返回挑战 nonce
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  challenge_id:
+                    type: string
+                    format: uuid
+                  nonce:
+                    type: string
+                    description: 32 字节 base64 编码的随机会话 nonce
+                  host_public_key:
+                    type: string
+                    description: daemon 的公钥
+                  expires_at:
+                    type: string
+                    format: date-time
+        "400":
+          description: 绑定码无效或已过期
+
+  /devices/bind/verify:
+    post:
+      summary: 验证设备绑定
+      description: App 通过 SSH 执行 bind-verify 得到签名后调用此端点
+      operationId: verifyBinding
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: ["challenge_id", "signature"]
+              properties:
+                challenge_id:
+                  type: string
+                  format: uuid
+                signature:
+                  type: string
+                  description: Ed25519 对 "<binding_code>:<nonce>" 的 base64 签名
+      responses:
+        "200":
+          description: 绑定成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bound:
+                    type: boolean
+                  host_id:
+                    type: string
+                    description: 绑定的主机 ID
+        "403":
+          description: 签名验证失败
+
+  /hosts/sync:
+    post:
+      summary: 主机配置同步
+      description: App 加密上传主机配置到服务端（服务端不接触明文凭据）
+      operationId: syncHosts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/host-sync.json#/definitions/SyncRequest"
+      responses:
+        "200":
+          description: 同步结果
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/host-sync.json#/definitions/SyncResponse"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

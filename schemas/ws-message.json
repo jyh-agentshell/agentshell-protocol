@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentshell.dev/schemas/ws-message.json",
+  "title": "WebSocketMessage",
+  "description": "SignalR WebSocket 通道上客户端与服务端之间的通用消息信封",
+  "type": "object",
+  "required": ["message_id", "timestamp", "type", "payload"],
+  "properties": {
+    "message_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "agent_state_changed",
+        "session_lifecycle",
+        "approval_action",
+        "heartbeat",
+        "error",
+        "daemon_status",
+        "binding_challenge",
+        "binding_response"
+      ]
+    },
+    "direction": {
+      "type": "string",
+      "enum": ["server_to_client", "client_to_server"],
+      "description": "消息方向"
+    },
+    "payload": {
+      "type": "object",
+      "description": "消息内容，结构由 type 决定",
+      "oneOf": [
+        { "$ref": "events/agent-state.json" },
+        { "$ref": "events/session-lifecycle.json" }
+      ]
+    },
+    "correlation_id": {
+      "type": "string",
+      "description": "关联 ID，用于请求-响应配对"
+    }
+  }
+}

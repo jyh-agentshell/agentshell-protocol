@@ -1,0 +1,22 @@
+# .NET
+bin/
+obj/
+*.nupkg
+*.snupkg
+*.user
+*.suo
+*.cache
+
+# NuGet
+NuGet.Cache/
+
+# IDE
+.idea/
+.vs/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentshell.dev/schemas/push-payload.json",
+  "title": "PushPayload",
+  "description": "通过 FCM/JPush 推送到 Android 客户端的通知载荷",
+  "type": "object",
+  "required": ["notification_id", "timestamp", "type"],
+  "properties": {
+    "notification_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["approval_required", "agent_error", "session_ended", "daemon_update_available", "binding_request"],
+      "description": "通知类型"
+    },
+    "title": {
+      "type": "string",
+      "description": "通知标题"
+    },
+    "body": {
+      "type": "string",
+      "description": "通知正文"
+    },
+    "data": {
+      "type": "object",
+      "description": "点击通知后传递给 App 的数据载荷",
+      "properties": {
+        "session_id": { "type": "string" },
+        "host_id": { "type": "string" },
+        "agent_type": { "type": "string" },
+        "state": { "type": "string" },
+        "file_count": { "type": "integer" },
+        "action_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "App 深层链接"
+        }
+      }
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["high", "normal"],
+      "default": "high",
+      "description": "推送优先级。approval_required 为 high，其余为 normal"
+    },
+    "ttl_seconds": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 86400,
+      "default": 300,
+      "description": "通知存活时间（秒），超时后不再投递"
+    }
+  }
+}
