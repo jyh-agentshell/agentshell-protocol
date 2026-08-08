@@ -9,7 +9,7 @@
 
     <!-- NuGet 包元数据 -->
     <PackageId>AgentShell.Protocol</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <Authors>AgentShell Contributors</Authors>
     <Description>AgentShell 通信协议 —— 事件模型、DTO、枚举的共享类库。</Description>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>

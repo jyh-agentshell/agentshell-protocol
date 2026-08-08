@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://agentshell.dev/schemas/push-payload.json",
   "title": "PushPayload",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "通过 FCM/JPush 推送到 Android 客户端的通知载荷",
   "type": "object",
   "required": ["notification_id", "timestamp", "type"],

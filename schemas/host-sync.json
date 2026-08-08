@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://agentshell.dev/schemas/host-sync.json",
   "title": "HostSync",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "主机配置同步：添加/更新/删除服务器的请求与响应",
   "definitions": {
     "HostConfig": {
