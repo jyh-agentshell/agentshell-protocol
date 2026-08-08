@@ -14,7 +14,7 @@
     <Description>AgentShell 通信协议 —— 事件模型、DTO、枚举的共享类库。</Description>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <RepositoryUrl>https://github.com/agentshell/agentshell-protocol</RepositoryUrl>
+    <RepositoryUrl>https://github.com/jyh-agentshell/agentshell-protocol</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>agentshell;protocol;ai-agent;terminal;ssh</PackageTags>
 

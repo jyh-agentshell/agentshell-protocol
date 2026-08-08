@@ -5,6 +5,7 @@ namespace AgentShell.Protocol.Models;
 /// <summary>
 /// 推送通知类型
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum PushType
 {
     [JsonPropertyName("approval_required")]
@@ -26,6 +27,7 @@ public enum PushType
 /// <summary>
 /// 推送优先级
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum PushPriority
 {
     [JsonPropertyName("high")]

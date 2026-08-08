@@ -5,6 +5,7 @@ namespace AgentShell.Protocol.Models;
 /// <summary>
 /// SSH 认证方式
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum AuthType
 {
     [JsonPropertyName("password")]

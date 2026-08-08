@@ -74,6 +74,7 @@ paths:
     post:
       summary: 发起设备绑定
       description: App 扫码后调用此端点发起设备绑定流程
+      x-implementation-status: stub  # Phase 2 实装，当前返回占位数据
       operationId: initiateBinding
       requestBody:
         required: true
@@ -119,6 +120,7 @@ paths:
     post:
       summary: 验证设备绑定
       description: App 通过 SSH 执行 bind-verify 得到签名后调用此端点
+      x-implementation-status: stub  # Phase 2 实装，Ed25519 验签未实装
       operationId: verifyBinding
       requestBody:
         required: true

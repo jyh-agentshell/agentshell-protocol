@@ -5,6 +5,7 @@ namespace AgentShell.Protocol.Models;
 /// <summary>
 /// 会话生命周期事件类型
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum SessionEventType
 {
     [JsonPropertyName("session_created")]

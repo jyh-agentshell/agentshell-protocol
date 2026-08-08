@@ -5,6 +5,7 @@ namespace AgentShell.Protocol.Models;
 /// <summary>
 /// 同步操作类型
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum SyncOperation
 {
     [JsonPropertyName("full_sync")]
@@ -23,6 +24,7 @@ public enum SyncOperation
 /// <summary>
 /// 同步状态
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum SyncStatus
 {
     [JsonPropertyName("ok")]

@@ -2,9 +2,10 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://agentshell.dev/schemas/events/session-lifecycle.json",
   "title": "SessionLifecycleEvent",
+  "version": "0.1.0",
   "description": "守护进程上报的会话生命周期事件（会话创建/销毁/暂停/恢复）",
   "type": "object",
-  "required": ["event_id", "timestamp", "session_id", "event_type"],
+  "required": ["event_id", "timestamp", "session_id", "event_type", "multiplexer_type"],
   "properties": {
     "event_id": {
       "type": "string",

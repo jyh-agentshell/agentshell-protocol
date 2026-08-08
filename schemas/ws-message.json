@@ -2,6 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://agentshell.dev/schemas/ws-message.json",
   "title": "WebSocketMessage",
+  "version": "0.1.0",
   "description": "SignalR WebSocket 通道上客户端与服务端之间的通用消息信封",
   "type": "object",
   "required": ["message_id", "timestamp", "type", "payload"],
@@ -34,11 +35,7 @@
     },
     "payload": {
       "type": "object",
-      "description": "消息内容，结构由 type 决定",
-      "oneOf": [
-        { "$ref": "events/agent-state.json" },
-        { "$ref": "events/session-lifecycle.json" }
-      ]
+      "description": "消息内容，结构由 type 决定。具体校验由消费方根据 type 进行。"
     },
     "correlation_id": {
       "type": "string",

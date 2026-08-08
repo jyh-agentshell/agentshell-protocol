@@ -6,6 +6,7 @@ namespace AgentShell.Protocol.Models;
 /// <summary>
 /// WebSocket 消息类型
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum WsMessageType
 {
     [JsonPropertyName("agent_state_changed")]
@@ -36,6 +37,7 @@ public enum WsMessageType
 /// <summary>
 /// 消息方向
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum MessageDirection
 {
     [JsonPropertyName("server_to_client")]
