@@ -25,58 +25,28 @@ public sealed class HostConfig
     [JsonPropertyOrder(1)]
     public required string HostId { get; init; }
 
-    /// <summary>用户自定义显示名称</summary>
-    [JsonPropertyName("label")]
+    /// <summary>客户端加密后的完整主机配置密文</summary>
+    [JsonPropertyName("ciphertext")]
     [JsonPropertyOrder(2)]
-    public string? Label { get; init; }
+    public required string Ciphertext { get; init; }
 
-    /// <summary>服务器地址</summary>
-    [JsonPropertyName("hostname")]
+    /// <summary>加密随机 nonce</summary>
+    [JsonPropertyName("nonce")]
     [JsonPropertyOrder(3)]
-    public required string Hostname { get; init; }
+    public required string Nonce { get; init; }
 
-    /// <summary>SSH 端口</summary>
-    [JsonPropertyName("port")]
+    /// <summary>附加认证数据（AAD）</summary>
+    [JsonPropertyName("aad")]
     [JsonPropertyOrder(4)]
-    public int Port { get; init; } = 22;
+    public required string Aad { get; init; }
 
-    /// <summary>SSH 用户名</summary>
-    [JsonPropertyName("username")]
+    /// <summary>客户端加密格式版本</summary>
+    [JsonPropertyName("encryption_version")]
     [JsonPropertyOrder(5)]
-    public required string Username { get; init; }
+    public int EncryptionVersion { get; init; }
 
-    /// <summary>认证方式</summary>
-    [JsonPropertyName("auth_type")]
+    /// <summary>主机配置最后更新时间</summary>
+    [JsonPropertyName("updated_at")]
     [JsonPropertyOrder(6)]
-    public required AuthType AuthType { get; init; }
-
-    /// <summary>AES-256-GCM 加密后的认证凭据（密码或私钥）</summary>
-    [JsonPropertyName("encrypted_credential")]
-    [JsonPropertyOrder(7)]
-    public string? EncryptedCredential { get; init; }
-
-    /// <summary>AES-256-GCM 加密 nonce</summary>
-    [JsonPropertyName("encrypted_credential_nonce")]
-    [JsonPropertyOrder(8)]
-    public string? EncryptedCredentialNonce { get; init; }
-
-    /// <summary>AES-256-GCM AAD（值为 host_id，防密文换绑）</summary>
-    [JsonPropertyName("encrypted_credential_aad")]
-    [JsonPropertyOrder(9)]
-    public string? EncryptedCredentialAad { get; init; }
-
-    /// <summary>默认连接的会话名</summary>
-    [JsonPropertyName("default_session")]
-    [JsonPropertyOrder(10)]
-    public string? DefaultSession { get; init; }
-
-    /// <summary>终端复用器类型</summary>
-    [JsonPropertyName("multiplexer_type")]
-    [JsonPropertyOrder(11)]
-    public MultiplexerType MultiplexerType { get; init; } = MultiplexerType.Tmux;
-
-    /// <summary>用户自定义标签</summary>
-    [JsonPropertyName("tags")]
-    [JsonPropertyOrder(12)]
-    public string[]? Tags { get; init; }
+    public DateTimeOffset UpdatedAt { get; init; }
 }
