@@ -44,7 +44,7 @@ ESC ] 9 ; agent_state=running BEL
 Agent 等待用户审批。
 
 ```
-ESC ] 9 ; agent_state=awaiting_approval; files=3; prompt=Approve changes? (y/n/d/r) BEL
+ESC ] 9 ; agent_state=awaiting_approval; files=3 BEL
 ```
 
 参数:
@@ -52,7 +52,6 @@ ESC ] 9 ; agent_state=awaiting_approval; files=3; prompt=Approve changes? (y/n/d
 | 键 | 类型 | 必需 | 说明 |
 |----|------|------|------|
 | `files` | int | 是 | 涉及的文件数量 |
-| `prompt` | string | 是 | Agent 展示给用户的审批提示文本。base64 编码。 |
 
 ### `agent_state=idle`
 
@@ -69,21 +68,17 @@ ESC ] 9 ; agent_state=idle BEL
 Agent 遇到错误。
 
 ```
-ESC ] 9 ; agent_state=error; message=QnVpbGQgZmFpbGVkIGF0IGxpbmUgNDI= BEL
+ESC ] 9 ; agent_state=error BEL
 ```
 
-参数:
-
-| 键 | 类型 | 必需 | 说明 |
-|----|------|------|------|
-| `message` | string | 是 | 错误描述。base64 编码以避免特殊字符问题。 |
+参数: 无。错误原文不得写入 OSC 标记或上报网关。
 
 ## 守护进程处理逻辑
 
 1. 持续读取终端输出流
 2. 检测到 `ESC ] 9 ;` 前缀 → 进入 OSC 解析
-3. 遇到 `BEL` (0x07) → 解析结束，提取状态
-4. 未知键静默忽略（向前兼容）
+3. 遇到 `BEL` (0x07) → 解析结束；仅提取 `agent_state` 与 `files`
+4. 未知键（包括终端原文）静默忽略，且不解码、不记录、不上报
 5. 解析失败 → 降级到正则回退路径
 
 ## 与 CLI 工具集成建议

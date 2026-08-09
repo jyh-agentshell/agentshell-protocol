@@ -34,32 +34,16 @@
     "detail": {
       "type": "object",
       "description": "状态相关的详细信息",
+      "additionalProperties": false,
       "properties": {
-        "message": {
-          "type": "string",
-          "description": "人类可读的状态描述"
-        },
-        "prompt": {
-          "type": "string",
-          "description": "Agent 的交互提示文本（如 \"Approve changes? (y/n/d/r)\"）"
-        },
         "file_count": {
           "type": "integer",
           "minimum": 0,
           "description": "审批涉及的文件数量"
         },
-        "file_list": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "审批涉及的文件路径列表（脱敏后，仅为文件名，不含完整路径）"
-        },
         "error_code": {
           "type": "string",
           "description": "错误码，仅 state=error 时有值"
-        },
-        "error_message": {
-          "type": "string",
-          "description": "错误描述，仅 state=error 时有值"
         }
       }
     },
