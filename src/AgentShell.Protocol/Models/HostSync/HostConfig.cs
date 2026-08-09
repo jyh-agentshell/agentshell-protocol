@@ -8,10 +8,10 @@ namespace AgentShell.Protocol.Models;
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum AuthType
 {
-    [JsonPropertyName("password")]
+    [JsonStringEnumMemberName("password")]
     Password,
 
-    [JsonPropertyName("private_key")]
+    [JsonStringEnumMemberName("private_key")]
     PrivateKey
 }
 
@@ -60,18 +60,23 @@ public sealed class HostConfig
     [JsonPropertyOrder(8)]
     public string? EncryptedCredentialNonce { get; init; }
 
+    /// <summary>AES-256-GCM AAD（值为 host_id，防密文换绑）</summary>
+    [JsonPropertyName("encrypted_credential_aad")]
+    [JsonPropertyOrder(9)]
+    public string? EncryptedCredentialAad { get; init; }
+
     /// <summary>默认连接的会话名</summary>
     [JsonPropertyName("default_session")]
-    [JsonPropertyOrder(9)]
+    [JsonPropertyOrder(10)]
     public string? DefaultSession { get; init; }
 
     /// <summary>终端复用器类型</summary>
     [JsonPropertyName("multiplexer_type")]
-    [JsonPropertyOrder(10)]
+    [JsonPropertyOrder(11)]
     public MultiplexerType MultiplexerType { get; init; } = MultiplexerType.Tmux;
 
     /// <summary>用户自定义标签</summary>
     [JsonPropertyName("tags")]
-    [JsonPropertyOrder(11)]
+    [JsonPropertyOrder(12)]
     public string[]? Tags { get; init; }
 }

@@ -56,6 +56,28 @@ paths:
         "429":
           description: 上报过于频繁
 
+  /sessions/{session_id}/status:
+    get:
+      summary: 查询会话状态
+      description: 查询指定会话的当前 Agent 状态。Phase 2 实装。
+      x-implementation-status: stub
+      operationId: getSessionStatus
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 会话当前状态
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/events/agent-state.json"
+        "404":
+          description: 会话不存在
+
   /sessions/lifecycle:
     post:
       summary: 守护进程上报会话生命周期事件

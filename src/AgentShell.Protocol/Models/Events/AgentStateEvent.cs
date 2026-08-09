@@ -47,8 +47,13 @@ public sealed class AgentStateEvent
     [JsonPropertyOrder(8)]
     public StateSource? Source { get; init; }
 
+    /// <summary>协议版本号</summary>
+    [JsonPropertyName("protocol_version")]
+    [JsonPropertyOrder(9)]
+    public string? ProtocolVersion { get; init; }
+
     /// <summary>守护进程版本号</summary>
     [JsonPropertyName("daemon_version")]
-    [JsonPropertyOrder(9)]
+    [JsonPropertyOrder(10)]
     public string? DaemonVersion { get; init; }
 }

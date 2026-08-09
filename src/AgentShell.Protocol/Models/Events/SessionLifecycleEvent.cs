@@ -8,16 +8,16 @@ namespace AgentShell.Protocol.Models;
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum SessionEventType
 {
-    [JsonPropertyName("session_created")]
+    [JsonStringEnumMemberName("session_created")]
     Created,
 
-    [JsonPropertyName("session_attached")]
+    [JsonStringEnumMemberName("session_attached")]
     Attached,
 
-    [JsonPropertyName("session_detached")]
+    [JsonStringEnumMemberName("session_detached")]
     Detached,
 
-    [JsonPropertyName("session_destroyed")]
+    [JsonStringEnumMemberName("session_destroyed")]
     Destroyed
 }
 
@@ -66,8 +66,13 @@ public sealed class SessionLifecycleEvent
     [JsonPropertyOrder(8)]
     public int? PaneCount { get; init; }
 
+    /// <summary>协议版本号</summary>
+    [JsonPropertyName("protocol_version")]
+    [JsonPropertyOrder(9)]
+    public string? ProtocolVersion { get; init; }
+
     /// <summary>守护进程版本号</summary>
     [JsonPropertyName("daemon_version")]
-    [JsonPropertyOrder(9)]
+    [JsonPropertyOrder(10)]
     public string? DaemonVersion { get; init; }
 }

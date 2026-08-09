@@ -9,28 +9,28 @@ namespace AgentShell.Protocol.Models;
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum WsMessageType
 {
-    [JsonPropertyName("agent_state_changed")]
+    [JsonStringEnumMemberName("agent_state_changed")]
     AgentStateChanged,
 
-    [JsonPropertyName("session_lifecycle")]
+    [JsonStringEnumMemberName("session_lifecycle")]
     SessionLifecycle,
 
-    [JsonPropertyName("approval_action")]
+    [JsonStringEnumMemberName("approval_action")]
     ApprovalAction,
 
-    [JsonPropertyName("heartbeat")]
+    [JsonStringEnumMemberName("heartbeat")]
     Heartbeat,
 
-    [JsonPropertyName("error")]
+    [JsonStringEnumMemberName("error")]
     Error,
 
-    [JsonPropertyName("daemon_status")]
+    [JsonStringEnumMemberName("daemon_status")]
     DaemonStatus,
 
-    [JsonPropertyName("binding_challenge")]
+    [JsonStringEnumMemberName("binding_challenge")]
     BindingChallenge,
 
-    [JsonPropertyName("binding_response")]
+    [JsonStringEnumMemberName("binding_response")]
     BindingResponse
 }
 
@@ -40,10 +40,10 @@ public enum WsMessageType
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum MessageDirection
 {
-    [JsonPropertyName("server_to_client")]
+    [JsonStringEnumMemberName("server_to_client")]
     ServerToClient,
 
-    [JsonPropertyName("client_to_server")]
+    [JsonStringEnumMemberName("client_to_server")]
     ClientToServer
 }
 

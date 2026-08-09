@@ -14,7 +14,7 @@ AgentShell 定义一套 ANSI OSC（Operating System Command）转义序列，作
 | 变量名 | 说明 |
 |--------|------|
 | `AGENTSHELL_SESSION_ID` | 当前 AgentShell 会话标识 |
-| `AGENTSHELL_TOKEN` | 会话级一次性令牌，用于向 mDNS 本地 API 验证审批操作来源 |
+| `AGENTSHELL_TOKEN` | 会话级一次性令牌（256-bit 随机数，base64 编码），用于向 mDNS 本地 API（`GET /diff/{sessionId}?token=...`）验证审批操作来源。daemon 启动时生成，写入 tmux 环境变量。手机通过 LAN 直连 daemon Kestrel 端点时需带此 token 作为查询参数。 |
 
 ## OSC 序列格式
 

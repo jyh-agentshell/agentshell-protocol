@@ -8,19 +8,19 @@ namespace AgentShell.Protocol.Models;
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum PushType
 {
-    [JsonPropertyName("approval_required")]
+    [JsonStringEnumMemberName("approval_required")]
     ApprovalRequired,
 
-    [JsonPropertyName("agent_error")]
+    [JsonStringEnumMemberName("agent_error")]
     AgentError,
 
-    [JsonPropertyName("session_ended")]
+    [JsonStringEnumMemberName("session_ended")]
     SessionEnded,
 
-    [JsonPropertyName("daemon_update_available")]
+    [JsonStringEnumMemberName("daemon_update_available")]
     DaemonUpdateAvailable,
 
-    [JsonPropertyName("binding_request")]
+    [JsonStringEnumMemberName("binding_request")]
     BindingRequest
 }
 
@@ -30,10 +30,10 @@ public enum PushType
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum PushPriority
 {
-    [JsonPropertyName("high")]
+    [JsonStringEnumMemberName("high")]
     High,
 
-    [JsonPropertyName("normal")]
+    [JsonStringEnumMemberName("normal")]
     Normal
 }
 

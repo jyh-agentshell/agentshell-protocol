@@ -9,7 +9,7 @@
 
     <!-- NuGet 包元数据 -->
     <PackageId>AgentShell.Protocol</PackageId>
-    <Version>0.2.0</Version>
+    <!-- Version 由 Directory.Build.props 统一管理，CI 由 tag 驱动覆盖 -->
     <Authors>AgentShell Contributors</Authors>
     <Description>AgentShell 通信协议 —— 事件模型、DTO、枚举的共享类库。</Description>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
@@ -18,8 +18,16 @@
     <RepositoryType>git</RepositoryType>
     <PackageTags>agentshell;protocol;ai-agent;terminal;ssh</PackageTags>
 
-    <!-- 生成 XML 文档 -->
+    <!-- 生成 XML 文档（JSON Schema 为权威文档，XML 注释为辅助） -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisMode>Recommended</AnalysisMode>
+
+    <!-- 符号包 -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>

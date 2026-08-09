@@ -2,10 +2,11 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://agentshell.dev/schemas/events/agent-state.json",
   "title": "AgentStateEvent",
-  "version": "0.2.0",
+  "x-version": "0.2.0",
   "description": "守护进程上报的 Agent 状态变化事件",
   "type": "object",
   "required": ["event_id", "timestamp", "session_id", "agent_type", "state"],
+  "additionalProperties": false,
   "properties": {
     "event_id": {
       "type": "string",
@@ -22,19 +23,13 @@
       "description": "会话标识，格式: {host_id}/{multiplexer_type}/{session_name}"
     },
     "agent_type": {
-      "type": "string",
-      "enum": ["codex", "claude", "opencode", "aider", "unknown", "none"],
-      "description": "Agent CLI 工具类型"
+      "$ref": "../common.json#/definitions/agent_type"
     },
     "state": {
-      "type": "string",
-      "enum": ["running", "awaiting_approval", "idle", "error", "terminated"],
-      "description": "Agent 当前状态"
+      "$ref": "../common.json#/definitions/agent_state"
     },
     "previous_state": {
-      "type": "string",
-      "enum": ["running", "awaiting_approval", "idle", "error", "terminated"],
-      "description": "状态变更前的上一个状态"
+      "$ref": "../common.json#/definitions/agent_state"
     },
     "detail": {
       "type": "object",
@@ -69,9 +64,11 @@
       }
     },
     "source": {
+      "$ref": "../common.json#/definitions/state_source"
+    },
+    "protocol_version": {
       "type": "string",
-      "enum": ["osc_marker", "regex_fallback"],
-      "description": "状态信息来源：结构化标记 / 正则回退"
+      "description": "协议版本号（semver），用于向后兼容检测"
     },
     "daemon_version": {
       "type": "string",

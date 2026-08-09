@@ -2,10 +2,11 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://agentshell.dev/schemas/ws-message.json",
   "title": "WebSocketMessage",
-  "version": "0.2.0",
+  "x-version": "0.2.0",
   "description": "SignalR WebSocket 通道上客户端与服务端之间的通用消息信封",
   "type": "object",
-  "required": ["message_id", "timestamp", "type", "payload"],
+  "required": ["message_id", "timestamp", "type", "direction", "payload"],
+  "additionalProperties": false,
   "properties": {
     "message_id": {
       "type": "string",
@@ -35,11 +36,53 @@
     },
     "payload": {
       "type": "object",
-      "description": "消息内容，结构由 type 决定。具体校验由消费方根据 type 进行。"
+      "description": "消息内容，结构由 type 决定。见 definitions 中对应类型的子 schema。"
     },
     "correlation_id": {
       "type": "string",
       "description": "关联 ID，用于请求-响应配对"
+    }
+  },
+  "definitions": {
+    "approval_action_payload": {
+      "type": "object",
+      "required": ["session_id", "action"],
+      "additionalProperties": false,
+      "properties": {
+        "session_id": { "type": "string", "description": "目标会话标识" },
+        "action": { "type": "string", "enum": ["approve", "reject", "delegate", "request_info"], "description": "审批动作" },
+        "message": { "type": "string", "description": "可选备注" }
+      }
+    },
+    "binding_challenge_payload": {
+      "type": "object",
+      "required": ["challenge_id", "nonce", "host_public_key"],
+      "additionalProperties": false,
+      "properties": {
+        "challenge_id": { "type": "string", "format": "uuid" },
+        "nonce": { "type": "string", "description": "32 字节随机数（base64 编码）" },
+        "host_public_key": { "type": "string", "description": "daemon Ed25519 公钥（base64 编码）" },
+        "host_id": { "type": "string", "format": "uuid" },
+        "expires_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "binding_response_payload": {
+      "type": "object",
+      "required": ["challenge_id", "signature"],
+      "additionalProperties": false,
+      "properties": {
+        "challenge_id": { "type": "string", "format": "uuid" },
+        "signature": { "type": "string", "description": "Ed25519 对 nonce 的签名（base64 编码）" },
+        "device_id": { "type": "string" }
+      }
+    },
+    "heartbeat_payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "daemon_version": { "type": "string" },
+        "uptime_seconds": { "type": "integer", "minimum": 0 }
+      }
     }
   }
 }

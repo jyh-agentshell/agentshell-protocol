@@ -9,10 +9,10 @@ namespace AgentShell.Protocol.Models;
 public enum StateSource
 {
     /// <summary>ANSI OSC 结构化标记（优先级高）</summary>
-    [JsonPropertyName("osc_marker")]
+    [JsonStringEnumMemberName("osc_marker")]
     OscMarker,
 
     /// <summary>正则解析回退</summary>
-    [JsonPropertyName("regex_fallback")]
+    [JsonStringEnumMemberName("regex_fallback")]
     RegexFallback
 }

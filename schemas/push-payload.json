@@ -2,10 +2,11 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://agentshell.dev/schemas/push-payload.json",
   "title": "PushPayload",
-  "version": "0.2.0",
+  "x-version": "0.2.0",
   "description": "通过 FCM/JPush 推送到 Android 客户端的通知载荷",
   "type": "object",
   "required": ["notification_id", "timestamp", "type"],
+  "additionalProperties": false,
   "properties": {
     "notification_id": {
       "type": "string",
@@ -30,6 +31,7 @@
     },
     "data": {
       "type": "object",
+      "additionalProperties": false,
       "description": "点击通知后传递给 App 的数据载荷",
       "properties": {
         "session_id": { "type": "string" },

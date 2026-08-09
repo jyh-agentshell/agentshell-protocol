@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentshell.dev/schemas/common.json",
+  "title": "CommonDefinitions",
+  "x-version": "0.2.0",
+  "description": "共享的枚举和类型定义，被其他 schema 通过 $ref 引用",
+  "definitions": {
+    "agent_type": {
+      "type": "string",
+      "enum": ["codex", "claude", "opencode", "aider", "unknown", "none"],
+      "description": "Agent CLI 工具类型"
+    },
+    "agent_state": {
+      "type": "string",
+      "enum": ["running", "awaiting_approval", "idle", "error", "terminated"],
+      "description": "Agent 运行状态"
+    },
+    "multiplexer_type": {
+      "type": "string",
+      "enum": ["tmux", "screen", "zellij", "pty"],
+      "description": "终端复用器类型"
+    },
+    "state_source": {
+      "type": "string",
+      "enum": ["osc_marker", "regex_fallback"],
+      "description": "状态检测来源"
+    },
+    "auth_type": {
+      "type": "string",
+      "enum": ["password", "private_key"],
+      "description": "SSH 认证方式"
+    }
+  }
+}

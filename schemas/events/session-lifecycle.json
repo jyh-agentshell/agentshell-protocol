@@ -2,10 +2,11 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://agentshell.dev/schemas/events/session-lifecycle.json",
   "title": "SessionLifecycleEvent",
-  "version": "0.2.0",
+  "x-version": "0.2.0",
   "description": "守护进程上报的会话生命周期事件（会话创建/销毁/暂停/恢复）",
   "type": "object",
   "required": ["event_id", "timestamp", "session_id", "event_type", "multiplexer_type"],
+  "additionalProperties": false,
   "properties": {
     "event_id": {
       "type": "string",
@@ -25,26 +26,27 @@
       "description": "生命周期事件类型"
     },
     "multiplexer_type": {
-      "type": "string",
-      "enum": ["tmux", "screen", "zellij", "pty"],
-      "description": "终端复用器类型"
+      "$ref": "../common.json#/definitions/multiplexer_type"
     },
     "session_name": {
       "type": "string",
       "description": "复用器内的会话名"
     },
     "agent_type": {
-      "type": "string",
-      "enum": ["codex", "claude", "opencode", "aider", "unknown", "none"],
-      "description": "会话中检测到的 Agent 类型。none 表示无 Agent 运行"
+      "$ref": "../common.json#/definitions/agent_type"
     },
     "pane_count": {
       "type": "integer",
       "minimum": 0,
       "description": "窗格数量"
     },
+    "protocol_version": {
+      "type": "string",
+      "description": "协议版本号（semver）"
+    },
     "daemon_version": {
-      "type": "string"
+      "type": "string",
+      "description": "守护进程版本号"
     }
   }
 }

@@ -8,16 +8,16 @@ namespace AgentShell.Protocol.Models;
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum SyncOperation
 {
-    [JsonPropertyName("full_sync")]
+    [JsonStringEnumMemberName("full_sync")]
     FullSync,
 
-    [JsonPropertyName("add")]
+    [JsonStringEnumMemberName("add")]
     Add,
 
-    [JsonPropertyName("update")]
+    [JsonStringEnumMemberName("update")]
     Update,
 
-    [JsonPropertyName("delete")]
+    [JsonStringEnumMemberName("delete")]
     Delete
 }
 
@@ -27,16 +27,16 @@ public enum SyncOperation
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum SyncStatus
 {
-    [JsonPropertyName("ok")]
+    [JsonStringEnumMemberName("ok")]
     Ok,
 
-    [JsonPropertyName("partial")]
+    [JsonStringEnumMemberName("partial")]
     Partial,
 
-    [JsonPropertyName("conflict")]
+    [JsonStringEnumMemberName("conflict")]
     Conflict,
 
-    [JsonPropertyName("error")]
+    [JsonStringEnumMemberName("error")]
     Error
 }
 

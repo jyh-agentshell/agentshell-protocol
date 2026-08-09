@@ -9,18 +9,18 @@ namespace AgentShell.Protocol.Models;
 public enum MultiplexerType
 {
     /// <summary>tmux</summary>
-    [JsonPropertyName("tmux")]
+    [JsonStringEnumMemberName("tmux")]
     Tmux,
 
     /// <summary>GNU Screen</summary>
-    [JsonPropertyName("screen")]
+    [JsonStringEnumMemberName("screen")]
     Screen,
 
     /// <summary>Zellij</summary>
-    [JsonPropertyName("zellij")]
+    [JsonStringEnumMemberName("zellij")]
     Zellij,
 
     /// <summary>裸 PTY（无复用器）</summary>
-    [JsonPropertyName("pty")]
+    [JsonStringEnumMemberName("pty")]
     Pty
 }

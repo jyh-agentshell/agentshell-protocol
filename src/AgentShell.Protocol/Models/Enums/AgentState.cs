@@ -9,22 +9,22 @@ namespace AgentShell.Protocol.Models;
 public enum AgentState
 {
     /// <summary>正在执行任务</summary>
-    [JsonPropertyName("running")]
+    [JsonStringEnumMemberName("running")]
     Running,
 
     /// <summary>等待用户审批</summary>
-    [JsonPropertyName("awaiting_approval")]
+    [JsonStringEnumMemberName("awaiting_approval")]
     AwaitingApproval,
 
     /// <summary>空闲等待输入</summary>
-    [JsonPropertyName("idle")]
+    [JsonStringEnumMemberName("idle")]
     Idle,
 
     /// <summary>遇到错误</summary>
-    [JsonPropertyName("error")]
+    [JsonStringEnumMemberName("error")]
     Error,
 
     /// <summary>已终止</summary>
-    [JsonPropertyName("terminated")]
+    [JsonStringEnumMemberName("terminated")]
     Terminated
 }
