@@ -43,10 +43,10 @@ public sealed class HostConfig
     /// <summary>客户端加密格式版本</summary>
     [JsonPropertyName("encryption_version")]
     [JsonPropertyOrder(5)]
-    public int EncryptionVersion { get; init; }
+    public required int EncryptionVersion { get; init; }
 
     /// <summary>主机配置最后更新时间</summary>
     [JsonPropertyName("updated_at")]
     [JsonPropertyOrder(6)]
-    public DateTimeOffset UpdatedAt { get; init; }
+    public required DateTimeOffset UpdatedAt { get; init; }
 }

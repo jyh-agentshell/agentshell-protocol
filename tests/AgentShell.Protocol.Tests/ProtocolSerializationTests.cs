@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Runtime.CompilerServices;
 using AgentShell.Protocol.Models;
 using Xunit;
 
@@ -36,9 +37,32 @@ public sealed class ProtocolSerializationTests
         Assert.Contains("nonce", json, StringComparison.Ordinal);
         Assert.Contains("aad", json, StringComparison.Ordinal);
         Assert.Contains("encryption_version", json, StringComparison.Ordinal);
+        Assert.Contains("updated_at", json, StringComparison.Ordinal);
         Assert.DoesNotContain("hostname", json, StringComparison.Ordinal);
         Assert.DoesNotContain("username", json, StringComparison.Ordinal);
         Assert.DoesNotContain("port", json, StringComparison.Ordinal);
         Assert.DoesNotContain("auth_type", json, StringComparison.Ordinal);
+
+        using var document = JsonDocument.Parse(json);
+        var fieldNames = document.RootElement.EnumerateObject()
+            .Select(property => property.Name)
+            .Order()
+            .ToArray();
+
+        Assert.Equal(
+            ["aad", "ciphertext", "encryption_version", "host_id", "nonce", "updated_at"],
+            fieldNames);
+    }
+
+    [Fact]
+    public void HostConfig_加密版本和更新时间为必填字段()
+    {
+        var encryptionVersion = typeof(HostConfig).GetProperty(nameof(HostConfig.EncryptionVersion));
+        var updatedAt = typeof(HostConfig).GetProperty(nameof(HostConfig.UpdatedAt));
+
+        Assert.NotNull(encryptionVersion);
+        Assert.NotNull(updatedAt);
+        Assert.NotNull(encryptionVersion.GetCustomAttributes(typeof(RequiredMemberAttribute), inherit: false).SingleOrDefault());
+        Assert.NotNull(updatedAt.GetCustomAttributes(typeof(RequiredMemberAttribute), inherit: false).SingleOrDefault());
     }
 }
