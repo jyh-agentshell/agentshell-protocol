@@ -65,4 +65,69 @@ public sealed class ProtocolSerializationTests
         Assert.NotNull(encryptionVersion.GetCustomAttributes(typeof(RequiredMemberAttribute), inherit: false).SingleOrDefault());
         Assert.NotNull(updatedAt.GetCustomAttributes(typeof(RequiredMemberAttribute), inherit: false).SingleOrDefault());
     }
+
+    [Fact]
+    public void RenewResponse_序列化与反序列化_RoundTrip()
+    {
+        var original = new RenewResponse
+        {
+            AccessToken = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJob3N0XzEifQ.signature",
+            TokenType = "Bearer",
+            ExpiresIn = 3600
+        };
+        var json = JsonSerializer.Serialize(original);
+        var deserialized = JsonSerializer.Deserialize<RenewResponse>(json);
+        Assert.NotNull(deserialized);
+        Assert.Equal(original.AccessToken, deserialized!.AccessToken);
+        Assert.Equal(3600, deserialized.ExpiresIn);
+    }
+
+    [Fact]
+    public void BindInitiateResponse_序列化使用snake_case()
+    {
+        var response = new BindInitiateResponse
+        {
+            ChallengeId = Guid.NewGuid().ToString(),
+            Nonce = Convert.ToBase64String(new byte[32]),
+            TtlSeconds = 300
+        };
+        var json = JsonSerializer.Serialize(response);
+        Assert.Contains("challenge_id", json);
+        Assert.Contains("ttl_seconds", json);
+    }
+
+    [Fact]
+    public void BindConfirmRequest_序列化使用snake_case()
+    {
+        var request = new BindConfirmRequest
+        {
+            ChallengeId = "challenge-123",
+            BindingCode = "123456",
+            Signature = "base64signature...",
+            PublicKey = "base64publickey..."
+        };
+        var json = JsonSerializer.Serialize(request);
+        Assert.Contains("challenge_id", json);
+        Assert.Contains("binding_code", json);
+        Assert.Contains("public_key", json);
+    }
+
+    [Fact]
+    public void BindConfirmResponse_序列化与反序列化_RoundTrip()
+    {
+        var original = new BindConfirmResponse
+        {
+            Bound = true,
+            HostId = Guid.NewGuid().ToString("D"),
+            AccessToken = "eyJhbGciOiJIUzI1NiJ9.test",
+            TokenType = "Bearer",
+            ExpiresIn = 3600
+        };
+        var json = JsonSerializer.Serialize(original);
+        var deserialized = JsonSerializer.Deserialize<BindConfirmResponse>(json);
+        Assert.NotNull(deserialized);
+        Assert.True(deserialized!.Bound);
+        Assert.Equal(original.HostId, deserialized.HostId);
+        Assert.Equal(original.AccessToken, deserialized.AccessToken);
+    }
 }
