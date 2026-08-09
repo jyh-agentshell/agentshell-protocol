@@ -92,8 +92,8 @@ public sealed class ProtocolSerializationTests
             TtlSeconds = 300
         };
         var json = JsonSerializer.Serialize(response);
-        Assert.Contains("challenge_id", json);
-        Assert.Contains("ttl_seconds", json);
+        Assert.Contains("challenge_id", json, StringComparison.Ordinal);
+        Assert.Contains("ttl_seconds", json, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -103,13 +103,16 @@ public sealed class ProtocolSerializationTests
         {
             ChallengeId = "challenge-123",
             BindingCode = "123456",
+            HostId = "5a649887-2922-42ac-97d1-2ee5a9ec6335",
             Signature = "base64signature...",
             PublicKey = "base64publickey..."
         };
         var json = JsonSerializer.Serialize(request);
-        Assert.Contains("challenge_id", json);
-        Assert.Contains("binding_code", json);
-        Assert.Contains("public_key", json);
+        Assert.Contains("challenge_id", json, StringComparison.Ordinal);
+        Assert.Contains("binding_code", json, StringComparison.Ordinal);
+        Assert.Contains("host_id", json, StringComparison.Ordinal);
+        Assert.Contains("signature", json, StringComparison.Ordinal);
+        Assert.Contains("public_key", json, StringComparison.Ordinal);
     }
 
     [Fact]
