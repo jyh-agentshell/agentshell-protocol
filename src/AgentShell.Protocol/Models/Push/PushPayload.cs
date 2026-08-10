@@ -81,6 +81,16 @@ public sealed class PushPayload
     [JsonPropertyName("ttl_seconds")]
     [JsonPropertyOrder(8)]
     public int TtlSeconds { get; init; } = 300;
+
+    /// <summary>P2.3：事件分级</summary>
+    [JsonPropertyName("event_level")]
+    [JsonPropertyOrder(9)]
+    public NotificationLevel? EventLevel { get; init; }
+
+    /// <summary>P2.3：通知去重折叠键（同 host 同类型通知会被后来的替换）</summary>
+    [JsonPropertyName("collapse_key")]
+    [JsonPropertyOrder(10)]
+    public string? CollapseKey { get; init; }
 }
 
 /// <summary>

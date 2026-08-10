@@ -12,7 +12,7 @@ on:
         required: false
 
 env:
-  DOTNET_VERSION: "10.0.302"
+  DOTNET_VERSION: "10.0.110"
   PROJECT_PATH: "src/AgentShell.Protocol/AgentShell.Protocol.csproj"
 
 jobs:
@@ -66,6 +66,9 @@ jobs:
           --configuration Release
           --no-restore
           ${{ steps.version.outputs.package_version != '' && format('-p:Version={0}', steps.version.outputs.package_version) || '' }}
+
+      - name: Test
+        run: dotnet test tests/AgentShell.Protocol.Tests/AgentShell.Protocol.Tests.csproj --configuration Release --no-restore
 
       - name: Pack
         run: >
