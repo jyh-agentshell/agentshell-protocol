@@ -290,4 +290,20 @@ public sealed class ProtocolSerializationTests
         Assert.NotNull(deserialized);
         Assert.Equal("123456", deserialized!.BindingCode);
     }
+
+    [Fact]
+    public void 主机注册请求使用固定线协议字段()
+    {
+        var request = new RegisterHostKeyRequest(
+            "install_once",
+            "11111111-1111-4111-8111-111111111111",
+            Convert.ToBase64String(new byte[32]));
+
+        var json = JsonSerializer.Serialize(request);
+
+        Assert.Contains("registration_token", json, StringComparison.Ordinal);
+        Assert.Contains("host_id", json, StringComparison.Ordinal);
+        Assert.Contains("public_key", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("private", json, StringComparison.OrdinalIgnoreCase);
+    }
 }
