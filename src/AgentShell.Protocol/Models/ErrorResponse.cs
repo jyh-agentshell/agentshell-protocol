@@ -3,5 +3,5 @@ using System.Text.Json.Serialization;
 namespace AgentShell.Protocol.Models;
 
 public sealed record ErrorResponse(
-    [property: JsonPropertyName("error")] string Error,
-    [property: JsonPropertyName("code")] RegistrationErrorCode Code);
+    [property: JsonPropertyName("error")][property: JsonRequired] string Error,
+    [property: JsonPropertyName("code")][property: JsonRequired] RegistrationErrorCode Code);

@@ -7,6 +7,7 @@ using AgentShell.Protocol.Models;
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Reader;
 using Microsoft.OpenApi.YamlReader;
+using SharpYaml.Serialization;
 using Xunit;
 
 namespace AgentShell.Protocol.Tests;
@@ -401,6 +402,22 @@ public sealed class ProtocolSerializationTests
 
         Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<RegisterHostKeyRequest>($$"""{"registration_token":"{{token}}","public_key":"{{key}}"}"""));
         Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<RegisterHostKeyRequest>($$"""{"registration_token":"{{token}}","host_id":"11111111-1111-4111-8111-111111111111"}"""));
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<RegisterHostKeyRequest>($$"""{"host_id":"11111111-1111-4111-8111-111111111111","public_key":"{{key}}"}"""));
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<RegisterHostKeyRequest>($$"""{"registration_token":"{{token}}","host_id":"11111111-1111-4111-8111-111111111111","public_key":"{{key}}","extra":true}"""));
+    }
+
+    [Fact]
+    public void 注册DTO反序列化拒绝缺少全部OpenAPI必填字段()
+    {
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<CreateRegistrationTokenResponse>("{\"registration_token\":\"token\"}"));
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<RegisterHostKeyResponse>("{\"host_id\":\"host\"}"));
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<ErrorResponse>("{\"error\":\"错误\"}"));
+    }
+
+    [Fact]
+    public void 注册错误码拒绝数值JSON()
+    {
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<ErrorResponse>("{\"error\":\"错误\",\"code\":0}"));
     }
 
     [Fact]
@@ -456,14 +473,22 @@ public sealed class ProtocolSerializationTests
             .Value;
         Assert.NotNull(specificationPath);
 
-        var settings = new OpenApiReaderSettings
-        {
-            BaseUrl = new Uri(specificationPath!),
-            LoadExternalRefs = false,
-            RuleSet = ValidationRuleSet.GetEmptyRuleSet()
-        };
+        var source = new YamlStream();
+        using (var input = File.OpenText(specificationPath!)) source.Load(input);
+        var root = (YamlMappingNode)source.Documents[0].RootNode;
+        var sourceComponents = GetYamlMapping(root, "components");
+        var sourceSchemas = GetYamlMapping(sourceComponents, "schemas");
+        var requestSchema = GetYamlNode(sourceSchemas, "RegisterHostKeyRequest");
+        var fragment = new YamlStream([new YamlDocument(new YamlMappingNode([
+            new YamlScalarNode("openapi"), new YamlScalarNode("3.1.0"),
+            new YamlScalarNode("info"), new YamlMappingNode([new YamlScalarNode("title"), new YamlScalarNode("fragment"), new YamlScalarNode("version"), new YamlScalarNode("1.0.0")]),
+            new YamlScalarNode("components"), new YamlMappingNode([new YamlScalarNode("schemas"), new YamlMappingNode([new YamlScalarNode("RegisterHostKeyRequest"), requestSchema])])
+        ]))]);
+        using var output = new StringWriter();
+        fragment.Save(output, false, 2);
+        var settings = new OpenApiReaderSettings();
         settings.AddYamlReader();
-        var (document, diagnostic) = OpenApiDocument.LoadAsync(specificationPath!, settings).GetAwaiter().GetResult();
+        var (document, diagnostic) = OpenApiDocument.Parse(output.ToString(), "yaml", settings);
         if (diagnostic is null || diagnostic.Errors.Count != 0)
         {
             throw new InvalidOperationException("OpenAPI 规范无法解析。");
@@ -482,6 +507,10 @@ public sealed class ProtocolSerializationTests
 
         return schema;
     }
+
+    private static YamlMappingNode GetYamlMapping(YamlMappingNode node, string key) => (YamlMappingNode)GetYamlNode(node, key);
+
+    private static YamlNode GetYamlNode(YamlMappingNode node, string key) => node.Children.Single(pair => ((YamlScalarNode)pair.Key).Value == key).Value;
 
     private static bool IsValidRegisterHostKeyRequest(IOpenApiSchema schema, JsonObject request)
     {
