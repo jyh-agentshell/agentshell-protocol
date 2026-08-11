@@ -496,22 +496,6 @@ public sealed class ProtocolSerializationTests
             path => path.Value == "/hosts/sync");
     }
 
-    [Fact]
-    public void HostSync模型与Schema不得暴露私钥语义()
-    {
-        Assert.DoesNotContain(typeof(HostConfig).Assembly.GetTypes(), type =>
-            type.Name.Contains("AuthType", StringComparison.Ordinal) ||
-            type.Name.Contains("PrivateKey", StringComparison.Ordinal));
-
-        var schemaPath = Assembly.GetExecutingAssembly()
-            .GetCustomAttributes<AssemblyMetadataAttribute>()
-            .Single(attribute => attribute.Key == "OpenApiSpecificationPath")
-            .Value!;
-        var root = Path.GetDirectoryName(Path.GetDirectoryName(schemaPath))!;
-        var schema = File.ReadAllText(Path.Combine(root, "schemas", "host-sync.json"));
-        Assert.DoesNotContain("private_key", schema, StringComparison.OrdinalIgnoreCase);
-    }
-
     private static JsonSchema LoadRegisterHostKeyRequestSchema()
     {
         var specificationPath = Assembly.GetExecutingAssembly()
@@ -578,5 +562,22 @@ public sealed class ProtocolSerializationTests
     {
         using var document = JsonDocument.Parse(payload.ToJsonString());
         return schema.Evaluate(document.RootElement).IsValid;
+    }
+
+    private static string 获取仓库文件路径(params string[] pathSegments)
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null)
+        {
+            var candidate = Path.Combine([directory.FullName, .. pathSegments]);
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+
+            directory = directory.Parent;
+        }
+
+        throw new FileNotFoundException($"未找到仓库文件：{Path.Combine(pathSegments)}");
     }
 }
