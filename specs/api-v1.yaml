@@ -288,35 +288,45 @@ components:
       properties:
         error:
           type: string
+          description: 面向调用方的错误说明
         code:
           type: string
+          description: 主机注册流程的稳定、可判别错误码
+          enum:
+            - registration_token_invalid
+            - registration_token_expired
+            - registration_token_consumed
+            - host_key_conflict
+            - host_key_invalid
+            - unauthorized
+            - rate_limited
   responses:
     BadRequest:
-      description: 请求无效
+      description: 请求无效；`code` 为 `registration_token_invalid` 或 `host_key_invalid`。
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
     Unauthorized:
-      description: 未认证或认证无效
+      description: 未认证或认证无效；`code` 为 `unauthorized`。
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
     Conflict:
-      description: 注册令牌已使用或主机密钥已登记
+      description: 注册令牌已使用或主机密钥已登记；`code` 为 `registration_token_consumed` 或 `host_key_conflict`。
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
     Gone:
-      description: 注册令牌已过期
+      description: 注册令牌已过期；`code` 为 `registration_token_expired`。
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
     TooManyRequests:
-      description: 请求过于频繁
+      description: 请求过于频繁；`code` 为 `rate_limited`。
       content:
         application/json:
           schema:

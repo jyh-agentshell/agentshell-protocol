@@ -294,16 +294,79 @@ public sealed class ProtocolSerializationTests
     [Fact]
     public void 主机注册请求使用固定线协议字段()
     {
-        var request = new RegisterHostKeyRequest(
+        var original = new RegisterHostKeyRequest(
             "install_once",
             "11111111-1111-4111-8111-111111111111",
             Convert.ToBase64String(new byte[32]));
 
-        var json = JsonSerializer.Serialize(request);
+        var json = JsonSerializer.Serialize(original);
 
-        Assert.Contains("registration_token", json, StringComparison.Ordinal);
-        Assert.Contains("host_id", json, StringComparison.Ordinal);
-        Assert.Contains("public_key", json, StringComparison.Ordinal);
         Assert.DoesNotContain("private", json, StringComparison.OrdinalIgnoreCase);
+
+        using var document = JsonDocument.Parse(json);
+        var fieldNames = document.RootElement.EnumerateObject()
+            .Select(property => property.Name)
+            .Order()
+            .ToArray();
+        Assert.Equal(["host_id", "public_key", "registration_token"], fieldNames);
+
+        var deserialized = JsonSerializer.Deserialize<RegisterHostKeyRequest>(json);
+        Assert.Equal(original, deserialized);
+    }
+
+    [Fact]
+    public void 创建注册令牌响应使用固定线协议字段并可往返()
+    {
+        var expiresAt = DateTimeOffset.Parse("2026-08-11T10:00:00+00:00");
+        var original = new CreateRegistrationTokenResponse("install_once", expiresAt);
+
+        var json = JsonSerializer.Serialize(original);
+
+        using var document = JsonDocument.Parse(json);
+        var fieldNames = document.RootElement.EnumerateObject()
+            .Select(property => property.Name)
+            .Order()
+            .ToArray();
+        Assert.Equal(["expires_at", "registration_token"], fieldNames);
+        Assert.Equal(expiresAt, document.RootElement.GetProperty("expires_at").GetDateTimeOffset());
+
+        var deserialized = JsonSerializer.Deserialize<CreateRegistrationTokenResponse>(json);
+        Assert.Equal(original, deserialized);
+    }
+
+    [Fact]
+    public void 主机公钥登记响应使用固定线协议字段并可往返()
+    {
+        var original = new RegisterHostKeyResponse("11111111-1111-4111-8111-111111111111", true);
+
+        var json = JsonSerializer.Serialize(original);
+
+        using var document = JsonDocument.Parse(json);
+        var fieldNames = document.RootElement.EnumerateObject()
+            .Select(property => property.Name)
+            .Order()
+            .ToArray();
+        Assert.Equal(["host_id", "registered"], fieldNames);
+
+        var deserialized = JsonSerializer.Deserialize<RegisterHostKeyResponse>(json);
+        Assert.Equal(original, deserialized);
+    }
+
+    [Fact]
+    public void 错误响应使用固定线协议字段并可往返()
+    {
+        var original = new ErrorResponse("主机公钥无效", "host_key_invalid");
+
+        var json = JsonSerializer.Serialize(original);
+
+        using var document = JsonDocument.Parse(json);
+        var fieldNames = document.RootElement.EnumerateObject()
+            .Select(property => property.Name)
+            .Order()
+            .ToArray();
+        Assert.Equal(["code", "error"], fieldNames);
+
+        var deserialized = JsonSerializer.Deserialize<ErrorResponse>(json);
+        Assert.Equal(original, deserialized);
     }
 }
