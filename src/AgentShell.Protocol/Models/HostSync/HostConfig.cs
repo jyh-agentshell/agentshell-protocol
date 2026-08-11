@@ -3,19 +3,6 @@ using System.Text.Json.Serialization;
 namespace AgentShell.Protocol.Models;
 
 /// <summary>
-/// SSH 认证方式
-/// </summary>
-[JsonConverter(typeof(JsonStringEnumConverter))]
-public enum AuthType
-{
-    [JsonStringEnumMemberName("password")]
-    Password,
-
-    [JsonStringEnumMemberName("private_key")]
-    PrivateKey
-}
-
-/// <summary>
 /// 主机配置（客户端加密后上传的版本）
 /// </summary>
 public sealed class HostConfig

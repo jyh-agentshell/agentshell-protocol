@@ -75,6 +75,17 @@ public sealed class ProtocolSerializationTests
     }
 
     [Fact]
+    public void HostSync_模型和Schema不定义私钥语义()
+    {
+        var hostConfigSource = File.ReadAllText(获取仓库文件路径("src", "AgentShell.Protocol", "Models", "HostSync", "HostConfig.cs"));
+        var hostSyncSchema = File.ReadAllText(获取仓库文件路径("schemas", "host-sync.json"));
+
+        Assert.DoesNotContain("PrivateKey", hostConfigSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("private_key", hostConfigSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("private_key", hostSyncSchema, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RenewResponse_序列化与反序列化_RoundTrip()
     {
         var original = new RenewResponse
@@ -483,6 +494,22 @@ public sealed class ProtocolSerializationTests
         Assert.DoesNotContain(
             paths.Children.Keys.OfType<YamlScalarNode>(),
             path => path.Value == "/hosts/sync");
+    }
+
+    [Fact]
+    public void HostSync模型与Schema不得暴露私钥语义()
+    {
+        Assert.DoesNotContain(typeof(HostConfig).Assembly.GetTypes(), type =>
+            type.Name.Contains("AuthType", StringComparison.Ordinal) ||
+            type.Name.Contains("PrivateKey", StringComparison.Ordinal));
+
+        var schemaPath = Assembly.GetExecutingAssembly()
+            .GetCustomAttributes<AssemblyMetadataAttribute>()
+            .Single(attribute => attribute.Key == "OpenApiSpecificationPath")
+            .Value!;
+        var root = Path.GetDirectoryName(Path.GetDirectoryName(schemaPath))!;
+        var schema = File.ReadAllText(Path.Combine(root, "schemas", "host-sync.json"));
+        Assert.DoesNotContain("private_key", schema, StringComparison.OrdinalIgnoreCase);
     }
 
     private static JsonSchema LoadRegisterHostKeyRequestSchema()
