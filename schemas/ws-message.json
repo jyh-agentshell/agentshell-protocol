@@ -21,7 +21,6 @@
       "enum": [
         "agent_state_changed",
         "session_lifecycle",
-        "approval_action",
         "heartbeat",
         "error",
         "daemon_status",
@@ -44,16 +43,6 @@
     }
   },
   "definitions": {
-    "approval_action_payload": {
-      "type": "object",
-      "required": ["session_id", "action"],
-      "additionalProperties": false,
-      "properties": {
-        "session_id": { "type": "string", "description": "目标会话标识" },
-        "action": { "type": "string", "enum": ["approve", "reject", "delegate", "request_info"], "description": "审批动作" },
-        "message": { "type": "string", "description": "可选备注" }
-      }
-    },
     "binding_challenge_payload": {
       "type": "object",
       "required": ["challenge_id", "nonce", "host_public_key"],

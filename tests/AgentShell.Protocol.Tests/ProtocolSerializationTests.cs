@@ -247,6 +247,18 @@ public sealed class ProtocolSerializationTests
     }
 
     [Fact]
+    public void WebSocket契约不得定义网关审批动作()
+    {
+        Assert.DoesNotContain(typeof(WsMessageType).GetEnumNames(), name =>
+            name.Contains("Approval", StringComparison.Ordinal));
+
+        var schema = File.ReadAllText(获取仓库文件路径("schemas", "ws-message.json"));
+        Assert.DoesNotContain("approval_action", schema, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"approve\"", schema, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"reject\"", schema, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PushPayload_序列化与反序列化_RoundTrip()
     {
         var original = new PushPayload
