@@ -261,6 +261,7 @@ components:
           description: 注册令牌过期时间（创建后 10 分钟）
     RegisterHostKeyRequest:
       type: object
+      additionalProperties: false
       required: ["registration_token", "host_id", "public_key"]
       properties:
         registration_token:

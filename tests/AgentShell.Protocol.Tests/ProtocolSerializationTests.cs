@@ -369,4 +369,31 @@ public sealed class ProtocolSerializationTests
         var deserialized = JsonSerializer.Deserialize<ErrorResponse>(json);
         Assert.Equal(original, deserialized);
     }
+
+    [Fact]
+    public void 主机公钥登记请求拒绝未定义字段()
+    {
+        var specificationPath = FindSpecificationPath();
+        var specification = File.ReadAllText(specificationPath);
+        var schemaStart = specification.IndexOf("    RegisterHostKeyRequest:\n", StringComparison.Ordinal);
+        var schemaEnd = specification.IndexOf("\n    RegisterHostKeyResponse:", schemaStart, StringComparison.Ordinal);
+
+        Assert.True(schemaStart >= 0, "未找到 RegisterHostKeyRequest schema 定义。");
+        Assert.True(schemaEnd > schemaStart, "未找到 RegisterHostKeyRequest schema 定义的结束位置。");
+        Assert.Contains("additionalProperties: false", specification[schemaStart..schemaEnd], StringComparison.Ordinal);
+    }
+
+    private static string FindSpecificationPath()
+    {
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+        {
+            var candidate = Path.Combine(directory.FullName, "specs", "api-v1.yaml");
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        throw new FileNotFoundException("未找到 specs/api-v1.yaml。");
+    }
 }
