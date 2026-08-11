@@ -8,6 +8,7 @@ using Microsoft.OpenApi;
 using Microsoft.OpenApi.Reader;
 using Microsoft.OpenApi.YamlReader;
 using SharpYaml.Serialization;
+using Json.Schema;
 using Xunit;
 
 namespace AgentShell.Protocol.Tests;
@@ -432,32 +433,32 @@ public sealed class ProtocolSerializationTests
             ["public_key"] = validKey
         };
 
-        Assert.True(IsValidRegisterHostKeyRequest(schema, validRequest));
-        Assert.False(IsValidRegisterHostKeyRequest(schema, new JsonObject
+        Assert.True(Evaluate(schema, validRequest));
+        Assert.False(Evaluate(schema, new JsonObject
         {
             ["registration_token"] = "install_once",
             ["host_id"] = "11111111-1111-4111-8111-111111111111",
             ["public_key"] = validKey,
             ["unexpected"] = "field"
         }));
-        Assert.False(IsValidRegisterHostKeyRequest(schema, new JsonObject
+        Assert.False(Evaluate(schema, new JsonObject
         {
             ["registration_token"] = "install_once",
             ["public_key"] = validKey
         }));
-        Assert.False(IsValidRegisterHostKeyRequest(schema, new JsonObject
+        Assert.False(Evaluate(schema, new JsonObject
         {
             ["registration_token"] = "install_once",
             ["host_id"] = "11111111-1111-4111-8111-111111111111",
             ["public_key"] = Convert.ToBase64String(new byte[31])
         }));
-        Assert.False(IsValidRegisterHostKeyRequest(schema, new JsonObject
+        Assert.False(Evaluate(schema, new JsonObject
         {
             ["registration_token"] = "install_once",
             ["host_id"] = "11111111-1111-4111-8111-111111111111",
             ["public_key"] = Convert.ToBase64String(new byte[33])
         }));
-        Assert.False(IsValidRegisterHostKeyRequest(schema, new JsonObject
+        Assert.False(Evaluate(schema, new JsonObject
         {
             ["registration_token"] = "install_once",
             ["host_id"] = "11111111-1111-4111-8111-111111111111",
@@ -465,7 +466,7 @@ public sealed class ProtocolSerializationTests
         }));
     }
 
-    private static IOpenApiSchema LoadRegisterHostKeyRequestSchema()
+    private static JsonSchema LoadRegisterHostKeyRequestSchema()
     {
         var specificationPath = Assembly.GetExecutingAssembly()
             .GetCustomAttributes<AssemblyMetadataAttribute>()
@@ -476,13 +477,22 @@ public sealed class ProtocolSerializationTests
         var source = new YamlStream();
         using (var input = File.OpenText(specificationPath!)) source.Load(input);
         var root = (YamlMappingNode)source.Documents[0].RootNode;
+        var paths = GetYamlMapping(root, "paths");
+        var registerKeyPath = GetYamlMapping(paths, "/hosts/register-key");
+        var post = GetYamlMapping(registerKeyPath, "post");
+        var requestBody = GetYamlMapping(post, "requestBody");
+        var content = GetYamlMapping(requestBody, "content");
+        var jsonContent = GetYamlMapping(content, "application/json");
+        var requestReference = ((YamlScalarNode)GetYamlNode((YamlMappingNode)GetYamlNode(jsonContent, "schema"), "$ref")).Value;
+        Assert.StartsWith("#/components/schemas/", requestReference);
+        var schemaName = requestReference["#/components/schemas/".Length..];
         var sourceComponents = GetYamlMapping(root, "components");
         var sourceSchemas = GetYamlMapping(sourceComponents, "schemas");
-        var requestSchema = GetYamlNode(sourceSchemas, "RegisterHostKeyRequest");
+        var requestSchema = GetYamlNode(sourceSchemas, schemaName);
         var fragment = new YamlStream([new YamlDocument(new YamlMappingNode([
             new YamlScalarNode("openapi"), new YamlScalarNode("3.1.0"),
             new YamlScalarNode("info"), new YamlMappingNode([new YamlScalarNode("title"), new YamlScalarNode("fragment"), new YamlScalarNode("version"), new YamlScalarNode("1.0.0")]),
-            new YamlScalarNode("components"), new YamlMappingNode([new YamlScalarNode("schemas"), new YamlMappingNode([new YamlScalarNode("RegisterHostKeyRequest"), requestSchema])])
+            new YamlScalarNode("components"), new YamlMappingNode([new YamlScalarNode("schemas"), new YamlMappingNode([new YamlScalarNode(schemaName), requestSchema])])
         ]))]);
         using var output = new StringWriter();
         fragment.Save(output, false, 2);
@@ -500,47 +510,27 @@ public sealed class ProtocolSerializationTests
         }
 
         var schemas = components.Schemas ?? throw new InvalidOperationException("OpenAPI 规范缺少组件 schema。");
-        if (!schemas.TryGetValue("RegisterHostKeyRequest", out var schema))
+        if (!schemas.TryGetValue(schemaName, out var schema))
         {
             throw new InvalidOperationException("OpenAPI 规范缺少 RegisterHostKeyRequest schema。");
         }
 
-        return schema;
+        var openApiJson = document.SerializeAsJsonAsync(OpenApiSpecVersion.OpenApi3_1).GetAwaiter().GetResult();
+        using var jsonDocument = JsonDocument.Parse(openApiJson);
+        return JsonSchema.FromText(jsonDocument.RootElement
+            .GetProperty("components")
+            .GetProperty("schemas")
+            .GetProperty(schemaName)
+            .GetRawText());
     }
 
     private static YamlMappingNode GetYamlMapping(YamlMappingNode node, string key) => (YamlMappingNode)GetYamlNode(node, key);
 
     private static YamlNode GetYamlNode(YamlMappingNode node, string key) => node.Children.Single(pair => ((YamlScalarNode)pair.Key).Value == key).Value;
 
-    private static bool IsValidRegisterHostKeyRequest(IOpenApiSchema schema, JsonObject request)
+    private static bool Evaluate(JsonSchema schema, JsonObject payload)
     {
-        if (schema.Properties is null || schema.Required is null)
-        {
-            return false;
-        }
-
-        if (schema.AdditionalPropertiesAllowed == false && request.Any(property => !schema.Properties.ContainsKey(property.Key)))
-        {
-            return false;
-        }
-
-        if (schema.Required.Any(property => !request.ContainsKey(property)))
-        {
-            return false;
-        }
-
-        if (!schema.Properties.TryGetValue("public_key", out var publicKeySchema)
-            || publicKeySchema.MinLength is not int minLength
-            || publicKeySchema.MaxLength is not int maxLength
-            || publicKeySchema.Pattern is not string pattern)
-        {
-            return false;
-        }
-
-        var publicKey = request["public_key"]?.GetValue<string>();
-        return publicKey is not null
-            && publicKey.Length >= minLength
-            && publicKey.Length <= maxLength
-            && Regex.IsMatch(publicKey, pattern);
+        using var document = JsonDocument.Parse(payload.ToJsonString());
+        return schema.Evaluate(document.RootElement).IsValid;
     }
 }
