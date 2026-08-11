@@ -273,6 +273,9 @@ components:
         public_key:
           type: string
           format: byte
+          minLength: 44
+          maxLength: 44
+          pattern: "^[A-Za-z0-9+/]{43}=$"
           description: 32 字节 Ed25519 公钥的 Base64 编码
     RegisterHostKeyResponse:
       type: object

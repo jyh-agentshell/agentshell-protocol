@@ -1,6 +1,12 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Runtime.CompilerServices;
 using AgentShell.Protocol.Models;
+using Microsoft.OpenApi;
+using Microsoft.OpenApi.Reader;
+using Microsoft.OpenApi.YamlReader;
 using Xunit;
 
 namespace AgentShell.Protocol.Tests;
@@ -355,7 +361,7 @@ public sealed class ProtocolSerializationTests
     [Fact]
     public void 错误响应使用固定线协议字段并可往返()
     {
-        var original = new ErrorResponse("主机公钥无效", "host_key_invalid");
+        var original = new ErrorResponse("主机公钥无效", RegistrationErrorCode.HostKeyInvalid);
 
         var json = JsonSerializer.Serialize(original);
 
@@ -368,32 +374,144 @@ public sealed class ProtocolSerializationTests
 
         var deserialized = JsonSerializer.Deserialize<ErrorResponse>(json);
         Assert.Equal(original, deserialized);
+        Assert.Contains("\"code\":\"host_key_invalid\"", json, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(RegistrationErrorCode.RegistrationTokenInvalid, "registration_token_invalid")]
+    [InlineData(RegistrationErrorCode.RegistrationTokenExpired, "registration_token_expired")]
+    [InlineData(RegistrationErrorCode.RegistrationTokenConsumed, "registration_token_consumed")]
+    [InlineData(RegistrationErrorCode.HostKeyConflict, "host_key_conflict")]
+    [InlineData(RegistrationErrorCode.HostKeyInvalid, "host_key_invalid")]
+    [InlineData(RegistrationErrorCode.Unauthorized, "unauthorized")]
+    [InlineData(RegistrationErrorCode.RateLimited, "rate_limited")]
+    public void 主机注册错误码序列化为稳定snake_case(RegistrationErrorCode code, string wireValue)
+    {
+        var json = JsonSerializer.Serialize(new ErrorResponse("错误", code));
+
+        Assert.Contains($"\"code\":\"{wireValue}\"", json, StringComparison.Ordinal);
+        Assert.Equal(code, JsonSerializer.Deserialize<ErrorResponse>(json)!.Code);
     }
 
     [Fact]
-    public void 主机公钥登记请求拒绝未定义字段()
+    public void 主机公钥登记请求反序列化拒绝缺少必填字段()
     {
-        var specificationPath = FindSpecificationPath();
-        var specification = File.ReadAllText(specificationPath);
-        var schemaStart = specification.IndexOf("    RegisterHostKeyRequest:\n", StringComparison.Ordinal);
-        var schemaEnd = specification.IndexOf("\n    RegisterHostKeyResponse:", schemaStart, StringComparison.Ordinal);
+        const string token = "install_once";
+        const string key = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 
-        Assert.True(schemaStart >= 0, "未找到 RegisterHostKeyRequest schema 定义。");
-        Assert.True(schemaEnd > schemaStart, "未找到 RegisterHostKeyRequest schema 定义的结束位置。");
-        Assert.Contains("additionalProperties: false", specification[schemaStart..schemaEnd], StringComparison.Ordinal);
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<RegisterHostKeyRequest>($$"""{"registration_token":"{{token}}","public_key":"{{key}}"}"""));
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<RegisterHostKeyRequest>($$"""{"registration_token":"{{token}}","host_id":"11111111-1111-4111-8111-111111111111"}"""));
     }
 
-    private static string FindSpecificationPath()
+    [Fact]
+    public void 主机公钥登记请求Schema执行必填未知字段与Ed25519公钥约束()
     {
-        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+        var schema = LoadRegisterHostKeyRequestSchema();
+        var validKey = Convert.ToBase64String(new byte[32]);
+        var validRequest = new JsonObject
         {
-            var candidate = Path.Combine(directory.FullName, "specs", "api-v1.yaml");
-            if (File.Exists(candidate))
-            {
-                return candidate;
-            }
+            ["registration_token"] = "install_once",
+            ["host_id"] = "11111111-1111-4111-8111-111111111111",
+            ["public_key"] = validKey
+        };
+
+        Assert.True(IsValidRegisterHostKeyRequest(schema, validRequest));
+        Assert.False(IsValidRegisterHostKeyRequest(schema, new JsonObject
+        {
+            ["registration_token"] = "install_once",
+            ["host_id"] = "11111111-1111-4111-8111-111111111111",
+            ["public_key"] = validKey,
+            ["unexpected"] = "field"
+        }));
+        Assert.False(IsValidRegisterHostKeyRequest(schema, new JsonObject
+        {
+            ["registration_token"] = "install_once",
+            ["public_key"] = validKey
+        }));
+        Assert.False(IsValidRegisterHostKeyRequest(schema, new JsonObject
+        {
+            ["registration_token"] = "install_once",
+            ["host_id"] = "11111111-1111-4111-8111-111111111111",
+            ["public_key"] = Convert.ToBase64String(new byte[31])
+        }));
+        Assert.False(IsValidRegisterHostKeyRequest(schema, new JsonObject
+        {
+            ["registration_token"] = "install_once",
+            ["host_id"] = "11111111-1111-4111-8111-111111111111",
+            ["public_key"] = Convert.ToBase64String(new byte[33])
+        }));
+        Assert.False(IsValidRegisterHostKeyRequest(schema, new JsonObject
+        {
+            ["registration_token"] = "install_once",
+            ["host_id"] = "11111111-1111-4111-8111-111111111111",
+            ["public_key"] = $"{new string('A', 42)}!="
+        }));
+    }
+
+    private static IOpenApiSchema LoadRegisterHostKeyRequestSchema()
+    {
+        var specificationPath = Assembly.GetExecutingAssembly()
+            .GetCustomAttributes<AssemblyMetadataAttribute>()
+            .Single(attribute => attribute.Key == "OpenApiSpecificationPath")
+            .Value;
+        Assert.NotNull(specificationPath);
+
+        var settings = new OpenApiReaderSettings
+        {
+            BaseUrl = new Uri(specificationPath!),
+            LoadExternalRefs = false,
+            RuleSet = ValidationRuleSet.GetEmptyRuleSet()
+        };
+        settings.AddYamlReader();
+        var (document, diagnostic) = OpenApiDocument.LoadAsync(specificationPath!, settings).GetAwaiter().GetResult();
+        if (diagnostic is null || diagnostic.Errors.Count != 0)
+        {
+            throw new InvalidOperationException("OpenAPI 规范无法解析。");
         }
 
-        throw new FileNotFoundException("未找到 specs/api-v1.yaml。");
+        if (document?.Components is not { } components)
+        {
+            throw new InvalidOperationException("OpenAPI 规范缺少 RegisterHostKeyRequest schema。");
+        }
+
+        var schemas = components.Schemas ?? throw new InvalidOperationException("OpenAPI 规范缺少组件 schema。");
+        if (!schemas.TryGetValue("RegisterHostKeyRequest", out var schema))
+        {
+            throw new InvalidOperationException("OpenAPI 规范缺少 RegisterHostKeyRequest schema。");
+        }
+
+        return schema;
+    }
+
+    private static bool IsValidRegisterHostKeyRequest(IOpenApiSchema schema, JsonObject request)
+    {
+        if (schema.Properties is null || schema.Required is null)
+        {
+            return false;
+        }
+
+        if (schema.AdditionalPropertiesAllowed == false && request.Any(property => !schema.Properties.ContainsKey(property.Key)))
+        {
+            return false;
+        }
+
+        if (schema.Required.Any(property => !request.ContainsKey(property)))
+        {
+            return false;
+        }
+
+        if (!schema.Properties.TryGetValue("public_key", out var publicKeySchema)
+            || publicKeySchema.MinLength is not int minLength
+            || publicKeySchema.MaxLength is not int maxLength
+            || publicKeySchema.Pattern is not string pattern)
+        {
+            return false;
+        }
+
+        var publicKey = request["public_key"]?.GetValue<string>();
+        return publicKey is not null
+            && publicKey.Length >= minLength
+            && publicKey.Length <= maxLength
+            && Regex.IsMatch(publicKey, pattern);
     }
 }
