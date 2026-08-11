@@ -466,6 +466,25 @@ public sealed class ProtocolSerializationTests
         }));
     }
 
+    [Fact]
+    public void OpenApi不暴露主机同步路由()
+    {
+        var specificationPath = Assembly.GetExecutingAssembly()
+            .GetCustomAttributes<AssemblyMetadataAttribute>()
+            .Single(attribute => attribute.Key == "OpenApiSpecificationPath")
+            .Value;
+        Assert.NotNull(specificationPath);
+
+        var source = new YamlStream();
+        using (var input = File.OpenText(specificationPath!)) source.Load(input);
+        var root = (YamlMappingNode)source.Documents[0].RootNode;
+        var paths = GetYamlMapping(root, "paths");
+
+        Assert.DoesNotContain(
+            paths.Children.Keys.OfType<YamlScalarNode>(),
+            path => path.Value == "/hosts/sync");
+    }
+
     private static JsonSchema LoadRegisterHostKeyRequestSchema()
     {
         var specificationPath = Assembly.GetExecutingAssembly()

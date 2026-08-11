@@ -227,25 +227,6 @@ paths:
         "403":
           description: 签名验证失败
 
-  /hosts/sync:
-    post:
-      summary: 主机配置同步
-      description: App 加密上传主机配置到服务端（服务端不接触明文凭据）
-      operationId: syncHosts
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "../schemas/host-sync.json#/definitions/SyncRequest"
-      responses:
-        "200":
-          description: 同步结果
-          content:
-            application/json:
-              schema:
-                $ref: "../schemas/host-sync.json#/definitions/SyncResponse"
-
 components:
   schemas:
     CreateRegistrationTokenResponse:
