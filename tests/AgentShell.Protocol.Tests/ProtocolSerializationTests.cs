@@ -67,6 +67,17 @@ public sealed class ProtocolSerializationTests
     }
 
     [Fact]
+    public void HostSync_模型和Schema不定义私钥语义()
+    {
+        var hostConfigSource = File.ReadAllText(获取仓库文件路径("src", "AgentShell.Protocol", "Models", "HostSync", "HostConfig.cs"));
+        var hostSyncSchema = File.ReadAllText(获取仓库文件路径("schemas", "host-sync.json"));
+
+        Assert.DoesNotContain("PrivateKey", hostConfigSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("private_key", hostConfigSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("private_key", hostSyncSchema, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RenewResponse_序列化与反序列化_RoundTrip()
     {
         var original = new RenewResponse
@@ -289,5 +300,22 @@ public sealed class ProtocolSerializationTests
         var deserialized = JsonSerializer.Deserialize<BindInitiateRequest>(json);
         Assert.NotNull(deserialized);
         Assert.Equal("123456", deserialized!.BindingCode);
+    }
+
+    private static string 获取仓库文件路径(params string[] pathSegments)
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null)
+        {
+            var candidate = Path.Combine([directory.FullName, .. pathSegments]);
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+
+            directory = directory.Parent;
+        }
+
+        throw new FileNotFoundException($"未找到仓库文件：{Path.Combine(pathSegments)}");
     }
 }
