@@ -3,8 +3,8 @@ using System.Text.Json.Serialization;
 namespace AgentShell.Protocol.Models;
 
 /// <summary>
-/// App 确认绑定。包含 daemon 的 Ed25519 签名及公钥。
-/// 公钥由此首次上传到 Server，作为后续续期验签的根信任。
+/// App 确认绑定。包含 daemon 的 Ed25519 签名及已预登记公钥。
+/// 服务端只使用登记阶段可信的公钥验签，绑定请求不能登记或轮换密钥。
 /// </summary>
 public sealed class BindConfirmRequest
 {

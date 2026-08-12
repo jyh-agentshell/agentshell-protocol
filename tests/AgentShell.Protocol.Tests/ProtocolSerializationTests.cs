@@ -261,41 +261,28 @@ public sealed class ProtocolSerializationTests
     [Fact]
     public void PushPayload_序列化与反序列化_RoundTrip()
     {
-        var original = new PushPayload
-        {
-            NotificationId = "notif_001",
-            Timestamp = DateTimeOffset.Parse("2026-08-10T00:03:00+00:00"),
-            Type = PushType.ApprovalRequired,
-            Title = "测试主机 需要审批",
-            Body = "Claude Code 有 3 个文件变更需要审批",
-            Data = new PushData
-            {
-                SessionId = "host-123/tmux/session_alpha",
-                HostId = "host-123",
-                AgentType = "claude",
-                State = "awaiting_approval",
-                FileCount = 3,
-                ActionUrl = "agentshell://host/host-123/session/host-123%2Ftmux%2Fsession_alpha?action=terminal_takeover"
-            },
-            Priority = PushPriority.High,
-            TtlSeconds = 300
-        };
+        var original = new PushPayload(
+            "0.3.1", "11111111-1111-4111-8111-111111111111", NotificationLevel.Critical,
+            "22222222-2222-4222-8222-222222222222", "22222222-2222-4222-8222-222222222222/tmux/session_alpha",
+            "awaiting_approval", DateTimeOffset.Parse("2026-08-10T00:03:00+00:00"),
+            DateTimeOffset.Parse("2026-08-10T00:08:00+00:00"),
+            "host:22222222-2222-4222-8222-222222222222:session:session_alpha:state:awaiting_approval",
+            new DeepLinkParams("22222222-2222-4222-8222-222222222222", "session_alpha"));
         var json = JsonSerializer.Serialize(original);
         var deserialized = JsonSerializer.Deserialize<PushPayload>(json);
         Assert.NotNull(deserialized);
         Assert.Equal(original.NotificationId, deserialized!.NotificationId);
-        Assert.Equal(PushType.ApprovalRequired, deserialized.Type);
+        Assert.Equal(NotificationLevel.Critical, deserialized.EventLevel);
         Assert.Equal(PushPriority.High, deserialized.Priority);
-        Assert.NotNull(deserialized.Data);
-        Assert.Equal(3, deserialized.Data!.FileCount);
-        Assert.Contains("action_url", json, StringComparison.Ordinal);
+        Assert.Equal("session_alpha", deserialized.DeepLink.SessionId);
+        Assert.Contains("deep_link", json, StringComparison.Ordinal);
         // 验证数据载荷字段隐私边界：不包含代码/终端内容
         Assert.DoesNotContain("source_code", json, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("terminal_output", json, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("ssh_key", json, StringComparison.OrdinalIgnoreCase);
         // 验证 snake_case
         Assert.Contains("notification_id", json, StringComparison.Ordinal);
-        Assert.Contains("approval_required", json, StringComparison.Ordinal);
+        Assert.Contains("awaiting_approval", json, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -320,6 +307,25 @@ public sealed class ProtocolSerializationTests
         var deserialized = JsonSerializer.Deserialize<BindInitiateRequest>(json);
         Assert.NotNull(deserialized);
         Assert.Equal("123456", deserialized!.BindingCode);
+    }
+
+    [Fact]
+    public void PushTokenRegistrationRequest_序列化使用snake_case且拒绝未知字段()
+    {
+        var original = new PushTokenRegistrationRequest
+        {
+            Provider = "fcm",
+            Token = "provider-token",
+            AppVersion = "0.3.1",
+            ProtocolVersion = "0.3.1"
+        };
+
+        var json = JsonSerializer.Serialize(original);
+        Assert.Contains("app_version", json, StringComparison.Ordinal);
+        Assert.Contains("protocol_version", json, StringComparison.Ordinal);
+        Assert.NotNull(JsonSerializer.Deserialize<PushTokenRegistrationRequest>(json));
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<PushTokenRegistrationRequest>(
+            "{\"provider\":\"fcm\",\"token\":\"x\",\"app_version\":\"0.3.1\",\"protocol_version\":\"0.3.1\",\"extra\":true}"));
     }
 
     [Fact]

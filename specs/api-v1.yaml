@@ -200,45 +200,20 @@ paths:
     post:
       summary: 发起设备绑定
       description: App 扫码后调用此端点发起设备绑定流程
-      x-implementation-status: stub  # Phase 2 实装，当前返回占位数据
       operationId: initiateBinding
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: ["binding_code", "device_id"]
-              properties:
-                binding_code:
-                  type: string
-                  description: 6 位临时绑定码
-                device_id:
-                  type: string
-                  description: 设备标识
-                device_name:
-                  type: string
-                  description: 设备名称（如「Pixel 9 Pro」）
+              $ref: "#/components/schemas/BindInitiateRequest"
       responses:
         "200":
           description: 返回挑战 nonce
           content:
             application/json:
-              schema:
-                type: object
-                properties:
-                  challenge_id:
-                    type: string
-                    format: uuid
-                  nonce:
-                    type: string
-                    description: 32 字节 base64 编码的随机会话 nonce
-                  host_public_key:
-                    type: string
-                    description: daemon 的公钥
-                  expires_at:
-                    type: string
-                    format: date-time
+            schema:
+              $ref: "#/components/schemas/BindInitiateResponse"
         "400":
           description: 绑定码无效或已过期
 
@@ -246,37 +221,54 @@ paths:
     post:
       summary: 验证设备绑定
       description: App 通过 SSH 执行 bind-verify 得到签名后调用此端点
-      x-implementation-status: stub  # Phase 2 实装，Ed25519 验签未实装
       operationId: verifyBinding
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: ["challenge_id", "signature"]
-              properties:
-                challenge_id:
-                  type: string
-                  format: uuid
-                signature:
-                  type: string
-                  description: Ed25519 对 "<binding_code>:<nonce>" 的 base64 签名
+              $ref: "#/components/schemas/BindConfirmRequest"
       responses:
         "200":
           description: 绑定成功
           content:
             application/json:
-              schema:
-                type: object
-                properties:
-                  bound:
-                    type: boolean
-                  host_id:
-                    type: string
-                    description: 绑定的主机 ID
+            schema:
+              $ref: "#/components/schemas/BindConfirmResponse"
         "403":
           description: 签名验证失败
+
+  /devices/push-token:
+    put:
+      summary: 登记或轮换设备推送令牌
+      description: 仅保存厂商令牌及版本元数据；不得回显令牌，也不传输终端或凭据数据。
+      operationId: registerPushToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PushTokenRegistrationRequest"
+      responses:
+        "204":
+          description: 登记成功，无响应体。
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+    delete:
+      summary: 注销设备推送令牌
+      description: 清除服务端投递地址并关闭该设备通知；幂等且无响应体。
+      operationId: unregisterPushToken
+      responses:
+        "204":
+          description: 已注销或原本未登记，无响应体。
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
 
 components:
   schemas:
@@ -304,6 +296,81 @@ components:
         token_type:
           type: string
           enum: ["Bearer"]
+    BindInitiateRequest:
+      type: object
+      additionalProperties: false
+      required: ["binding_code"]
+      properties:
+        binding_code:
+          type: string
+          pattern: "^[0-9]{6}$"
+    BindInitiateResponse:
+      type: object
+      additionalProperties: false
+      required: ["challenge_id", "nonce", "ttl_seconds"]
+      properties:
+        challenge_id:
+          type: string
+        nonce:
+          type: string
+        ttl_seconds:
+          type: integer
+          minimum: 1
+    BindConfirmRequest:
+      type: object
+      additionalProperties: false
+      required: ["challenge_id", "binding_code", "host_id", "signature", "public_key"]
+      properties:
+        challenge_id:
+          type: string
+        binding_code:
+          type: string
+          pattern: "^[0-9]{6}$"
+        host_id:
+          type: string
+          format: uuid
+        signature:
+          type: string
+        public_key:
+          type: string
+          format: byte
+    BindConfirmResponse:
+      type: object
+      additionalProperties: false
+      required: ["bound", "host_id", "access_token", "token_type", "expires_in"]
+      properties:
+        bound:
+          type: boolean
+        host_id:
+          type: string
+          format: uuid
+        access_token:
+          type: string
+        token_type:
+          type: string
+          enum: ["Bearer"]
+        expires_in:
+          type: integer
+          minimum: 1
+    PushTokenRegistrationRequest:
+      type: object
+      additionalProperties: false
+      required: ["provider", "token", "app_version", "protocol_version"]
+      properties:
+        provider:
+          type: string
+          enum: ["fcm", "jpush"]
+        token:
+          type: string
+          minLength: 1
+          maxLength: 4096
+        app_version:
+          type: string
+          minLength: 1
+          maxLength: 64
+        protocol_version:
+          type: string
+          pattern: "^[0-9]+\\.[0-9]+\\.[0-9]+$"
     RenewResponse:
       type: object
       additionalProperties: false

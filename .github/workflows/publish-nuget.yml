@@ -57,26 +57,8 @@ jobs:
             exit 1
           fi
 
-      - name: Restore
-        run: dotnet restore ${{ env.PROJECT_PATH }}
-
-      - name: Build
-        run: >
-          dotnet build ${{ env.PROJECT_PATH }}
-          --configuration Release
-          --no-restore
-          ${{ steps.version.outputs.package_version != '' && format('-p:Version={0}', steps.version.outputs.package_version) || '' }}
-
-      - name: Test
-        run: dotnet test tests/AgentShell.Protocol.Tests/AgentShell.Protocol.Tests.csproj --configuration Release --no-restore
-
-      - name: Pack
-        run: >
-          dotnet pack ${{ env.PROJECT_PATH }}
-          --configuration Release
-          --no-build
-          --output ./artifacts
-          ${{ steps.version.outputs.package_version != '' && format('-p:Version={0}', steps.version.outputs.package_version) || '' }}
+      - name: 验证协议契约并打包
+        run: ./scripts/validate-contracts.sh "${{ steps.version.outputs.package_version }}"
 
       - name: Publish to NuGet.org
         run: >
