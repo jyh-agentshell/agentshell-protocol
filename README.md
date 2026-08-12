@@ -41,7 +41,7 @@ agentshell-protocol/
 
 ## 版本策略
 
-- **NuGet 包版本号 ≡ Schema 版本号**，同步变更
+- **NuGet 包版本号 ≡ Schema 版本号**，当前 P2.1 为 `0.3.0`
 - 通信协议向后兼容至少 2 个大版本
 - `schemas/` 中的 JSON Schema 是权威定义，C# 模型是对 Schema 的强类型实现
 

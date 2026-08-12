@@ -1,6 +1,14 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Runtime.CompilerServices;
 using AgentShell.Protocol.Models;
+using Microsoft.OpenApi;
+using Microsoft.OpenApi.Reader;
+using Microsoft.OpenApi.YamlReader;
+using SharpYaml.Serialization;
+using Json.Schema;
 using Xunit;
 
 namespace AgentShell.Protocol.Tests;
@@ -239,6 +247,18 @@ public sealed class ProtocolSerializationTests
     }
 
     [Fact]
+    public void WebSocket契约不得定义网关审批动作()
+    {
+        Assert.DoesNotContain(typeof(WsMessageType).GetEnumNames(), name =>
+            name.Contains("Approval", StringComparison.Ordinal));
+
+        var schema = File.ReadAllText(获取仓库文件路径("schemas", "ws-message.json"));
+        Assert.DoesNotContain("approval_action", schema, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"approve\"", schema, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"reject\"", schema, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PushPayload_序列化与反序列化_RoundTrip()
     {
         var original = new PushPayload
@@ -300,6 +320,260 @@ public sealed class ProtocolSerializationTests
         var deserialized = JsonSerializer.Deserialize<BindInitiateRequest>(json);
         Assert.NotNull(deserialized);
         Assert.Equal("123456", deserialized!.BindingCode);
+    }
+
+    [Fact]
+    public void 主机注册请求使用固定线协议字段()
+    {
+        var original = new RegisterHostKeyRequest(
+            "install_once",
+            "11111111-1111-4111-8111-111111111111",
+            Convert.ToBase64String(new byte[32]));
+
+        var json = JsonSerializer.Serialize(original);
+
+        Assert.DoesNotContain("private", json, StringComparison.OrdinalIgnoreCase);
+
+        using var document = JsonDocument.Parse(json);
+        var fieldNames = document.RootElement.EnumerateObject()
+            .Select(property => property.Name)
+            .Order()
+            .ToArray();
+        Assert.Equal(["host_id", "public_key", "registration_token"], fieldNames);
+
+        var deserialized = JsonSerializer.Deserialize<RegisterHostKeyRequest>(json);
+        Assert.Equal(original, deserialized);
+    }
+
+    [Fact]
+    public void 创建注册令牌响应使用固定线协议字段并可往返()
+    {
+        var expiresAt = DateTimeOffset.Parse("2026-08-11T10:00:00+00:00");
+        var original = new CreateRegistrationTokenResponse("install_once", expiresAt);
+
+        var json = JsonSerializer.Serialize(original);
+
+        using var document = JsonDocument.Parse(json);
+        var fieldNames = document.RootElement.EnumerateObject()
+            .Select(property => property.Name)
+            .Order()
+            .ToArray();
+        Assert.Equal(["expires_at", "registration_token"], fieldNames);
+        Assert.Equal(expiresAt, document.RootElement.GetProperty("expires_at").GetDateTimeOffset());
+
+        var deserialized = JsonSerializer.Deserialize<CreateRegistrationTokenResponse>(json);
+        Assert.Equal(original, deserialized);
+    }
+
+    [Fact]
+    public void 主机公钥登记响应使用固定线协议字段并可往返()
+    {
+        var original = new RegisterHostKeyResponse("11111111-1111-4111-8111-111111111111", true);
+
+        var json = JsonSerializer.Serialize(original);
+
+        using var document = JsonDocument.Parse(json);
+        var fieldNames = document.RootElement.EnumerateObject()
+            .Select(property => property.Name)
+            .Order()
+            .ToArray();
+        Assert.Equal(["host_id", "registered"], fieldNames);
+
+        var deserialized = JsonSerializer.Deserialize<RegisterHostKeyResponse>(json);
+        Assert.Equal(original, deserialized);
+    }
+
+    [Fact]
+    public void 错误响应使用固定线协议字段并可往返()
+    {
+        var original = new ErrorResponse("主机公钥无效", RegistrationErrorCode.HostKeyInvalid);
+
+        var json = JsonSerializer.Serialize(original);
+
+        using var document = JsonDocument.Parse(json);
+        var fieldNames = document.RootElement.EnumerateObject()
+            .Select(property => property.Name)
+            .Order()
+            .ToArray();
+        Assert.Equal(["code", "error"], fieldNames);
+
+        var deserialized = JsonSerializer.Deserialize<ErrorResponse>(json);
+        Assert.Equal(original, deserialized);
+        Assert.Contains("\"code\":\"host_key_invalid\"", json, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(RegistrationErrorCode.RegistrationTokenInvalid, "registration_token_invalid")]
+    [InlineData(RegistrationErrorCode.RegistrationTokenExpired, "registration_token_expired")]
+    [InlineData(RegistrationErrorCode.RegistrationTokenConsumed, "registration_token_consumed")]
+    [InlineData(RegistrationErrorCode.HostKeyConflict, "host_key_conflict")]
+    [InlineData(RegistrationErrorCode.HostKeyInvalid, "host_key_invalid")]
+    [InlineData(RegistrationErrorCode.Unauthorized, "unauthorized")]
+    [InlineData(RegistrationErrorCode.RateLimited, "rate_limited")]
+    public void 主机注册错误码序列化为稳定snake_case(RegistrationErrorCode code, string wireValue)
+    {
+        var json = JsonSerializer.Serialize(new ErrorResponse("错误", code));
+
+        Assert.Contains($"\"code\":\"{wireValue}\"", json, StringComparison.Ordinal);
+        Assert.Equal(code, JsonSerializer.Deserialize<ErrorResponse>(json)!.Code);
+    }
+
+    [Fact]
+    public void 主机公钥登记请求反序列化拒绝缺少必填字段()
+    {
+        const string token = "install_once";
+        const string key = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<RegisterHostKeyRequest>($$"""{"registration_token":"{{token}}","public_key":"{{key}}"}"""));
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<RegisterHostKeyRequest>($$"""{"registration_token":"{{token}}","host_id":"11111111-1111-4111-8111-111111111111"}"""));
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<RegisterHostKeyRequest>($$"""{"host_id":"11111111-1111-4111-8111-111111111111","public_key":"{{key}}"}"""));
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<RegisterHostKeyRequest>($$"""{"registration_token":"{{token}}","host_id":"11111111-1111-4111-8111-111111111111","public_key":"{{key}}","extra":true}"""));
+    }
+
+    [Fact]
+    public void 注册DTO反序列化拒绝缺少全部OpenAPI必填字段()
+    {
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<CreateRegistrationTokenResponse>("{\"registration_token\":\"token\"}"));
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<RegisterHostKeyResponse>("{\"host_id\":\"host\"}"));
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<ErrorResponse>("{\"error\":\"错误\"}"));
+    }
+
+    [Fact]
+    public void 注册错误码拒绝数值JSON()
+    {
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<ErrorResponse>("{\"error\":\"错误\",\"code\":0}"));
+    }
+
+    [Fact]
+    public void 主机公钥登记请求Schema执行必填未知字段与Ed25519公钥约束()
+    {
+        var schema = LoadRegisterHostKeyRequestSchema();
+        var validKey = Convert.ToBase64String(new byte[32]);
+        var validRequest = new JsonObject
+        {
+            ["registration_token"] = "install_once",
+            ["host_id"] = "11111111-1111-4111-8111-111111111111",
+            ["public_key"] = validKey
+        };
+
+        Assert.True(Evaluate(schema, validRequest));
+        Assert.False(Evaluate(schema, new JsonObject
+        {
+            ["registration_token"] = "install_once",
+            ["host_id"] = "11111111-1111-4111-8111-111111111111",
+            ["public_key"] = validKey,
+            ["unexpected"] = "field"
+        }));
+        Assert.False(Evaluate(schema, new JsonObject
+        {
+            ["registration_token"] = "install_once",
+            ["public_key"] = validKey
+        }));
+        Assert.False(Evaluate(schema, new JsonObject
+        {
+            ["registration_token"] = "install_once",
+            ["host_id"] = "11111111-1111-4111-8111-111111111111",
+            ["public_key"] = Convert.ToBase64String(new byte[31])
+        }));
+        Assert.False(Evaluate(schema, new JsonObject
+        {
+            ["registration_token"] = "install_once",
+            ["host_id"] = "11111111-1111-4111-8111-111111111111",
+            ["public_key"] = Convert.ToBase64String(new byte[33])
+        }));
+        Assert.False(Evaluate(schema, new JsonObject
+        {
+            ["registration_token"] = "install_once",
+            ["host_id"] = "11111111-1111-4111-8111-111111111111",
+            ["public_key"] = $"{new string('A', 42)}!="
+        }));
+    }
+
+    [Fact]
+    public void OpenApi不暴露主机同步路由()
+    {
+        var specificationPath = Assembly.GetExecutingAssembly()
+            .GetCustomAttributes<AssemblyMetadataAttribute>()
+            .Single(attribute => attribute.Key == "OpenApiSpecificationPath")
+            .Value;
+        Assert.NotNull(specificationPath);
+
+        var source = new YamlStream();
+        using (var input = File.OpenText(specificationPath!)) source.Load(input);
+        var root = (YamlMappingNode)source.Documents[0].RootNode;
+        var paths = GetYamlMapping(root, "paths");
+
+        Assert.DoesNotContain(
+            paths.Children.Keys.OfType<YamlScalarNode>(),
+            path => path.Value == "/hosts/sync");
+    }
+
+    private static JsonSchema LoadRegisterHostKeyRequestSchema()
+    {
+        var specificationPath = Assembly.GetExecutingAssembly()
+            .GetCustomAttributes<AssemblyMetadataAttribute>()
+            .Single(attribute => attribute.Key == "OpenApiSpecificationPath")
+            .Value;
+        Assert.NotNull(specificationPath);
+
+        var source = new YamlStream();
+        using (var input = File.OpenText(specificationPath!)) source.Load(input);
+        var root = (YamlMappingNode)source.Documents[0].RootNode;
+        var paths = GetYamlMapping(root, "paths");
+        var registerKeyPath = GetYamlMapping(paths, "/hosts/register-key");
+        var post = GetYamlMapping(registerKeyPath, "post");
+        var requestBody = GetYamlMapping(post, "requestBody");
+        var content = GetYamlMapping(requestBody, "content");
+        var jsonContent = GetYamlMapping(content, "application/json");
+        var requestReference = ((YamlScalarNode)GetYamlNode((YamlMappingNode)GetYamlNode(jsonContent, "schema"), "$ref")).Value;
+        Assert.StartsWith("#/components/schemas/", requestReference);
+        var schemaName = requestReference["#/components/schemas/".Length..];
+        var sourceComponents = GetYamlMapping(root, "components");
+        var sourceSchemas = GetYamlMapping(sourceComponents, "schemas");
+        var requestSchema = GetYamlNode(sourceSchemas, schemaName);
+        var fragment = new YamlStream([new YamlDocument(new YamlMappingNode([
+            new YamlScalarNode("openapi"), new YamlScalarNode("3.1.0"),
+            new YamlScalarNode("info"), new YamlMappingNode([new YamlScalarNode("title"), new YamlScalarNode("fragment"), new YamlScalarNode("version"), new YamlScalarNode("1.0.0")]),
+            new YamlScalarNode("components"), new YamlMappingNode([new YamlScalarNode("schemas"), new YamlMappingNode([new YamlScalarNode(schemaName), requestSchema])])
+        ]))]);
+        using var output = new StringWriter();
+        fragment.Save(output, false, 2);
+        var settings = new OpenApiReaderSettings();
+        settings.AddYamlReader();
+        var (document, diagnostic) = OpenApiDocument.Parse(output.ToString(), "yaml", settings);
+        if (diagnostic is null || diagnostic.Errors.Count != 0)
+        {
+            throw new InvalidOperationException("OpenAPI 规范无法解析。");
+        }
+
+        if (document?.Components is not { } components)
+        {
+            throw new InvalidOperationException("OpenAPI 规范缺少 RegisterHostKeyRequest schema。");
+        }
+
+        var schemas = components.Schemas ?? throw new InvalidOperationException("OpenAPI 规范缺少组件 schema。");
+        if (!schemas.TryGetValue(schemaName, out var schema))
+        {
+            throw new InvalidOperationException("OpenAPI 规范缺少 RegisterHostKeyRequest schema。");
+        }
+
+        var openApiJson = document.SerializeAsJsonAsync(OpenApiSpecVersion.OpenApi3_1).GetAwaiter().GetResult();
+        using var jsonDocument = JsonDocument.Parse(openApiJson);
+        return JsonSchema.FromText(jsonDocument.RootElement
+            .GetProperty("components")
+            .GetProperty("schemas")
+            .GetProperty(schemaName)
+            .GetRawText());
+    }
+
+    private static YamlMappingNode GetYamlMapping(YamlMappingNode node, string key) => (YamlMappingNode)GetYamlNode(node, key);
+
+    private static YamlNode GetYamlNode(YamlMappingNode node, string key) => node.Children.Single(pair => ((YamlScalarNode)pair.Key).Value == key).Value;
+
+    private static bool Evaluate(JsonSchema schema, JsonObject payload)
+    {
+        using var document = JsonDocument.Parse(payload.ToJsonString());
+        return schema.Evaluate(document.RootElement).IsValid;
     }
 
     private static string 获取仓库文件路径(params string[] pathSegments)

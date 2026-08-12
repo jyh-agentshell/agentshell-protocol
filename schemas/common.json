@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://agentshell.dev/schemas/common.json",
   "title": "CommonDefinitions",
-  "x-version": "0.2.0",
+  "x-version": "0.3.0",
   "description": "共享的枚举和类型定义，被其他 schema 通过 $ref 引用",
   "definitions": {
     "agent_type": {

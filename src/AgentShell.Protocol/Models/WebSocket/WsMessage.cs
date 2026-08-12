@@ -15,9 +15,6 @@ public enum WsMessageType
     [JsonStringEnumMemberName("session_lifecycle")]
     SessionLifecycle,
 
-    [JsonStringEnumMemberName("approval_action")]
-    ApprovalAction,
-
     [JsonStringEnumMemberName("heartbeat")]
     Heartbeat,
 
