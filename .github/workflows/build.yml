@@ -1,0 +1,24 @@
+name: Protocol Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.110"
+      - name: 构建、Schema/OpenAPI 契约与序列化测试
+        run: |
+          dotnet restore src/AgentShell.Protocol/AgentShell.Protocol.csproj
+          dotnet build src/AgentShell.Protocol/AgentShell.Protocol.csproj --configuration Release --no-restore
+          dotnet test tests/AgentShell.Protocol.Tests/AgentShell.Protocol.Tests.csproj --configuration Release --no-restore
