@@ -310,6 +310,25 @@ public sealed class ProtocolSerializationTests
     }
 
     [Fact]
+    public void PushTokenRegistrationRequest_序列化使用snake_case且拒绝未知字段()
+    {
+        var original = new PushTokenRegistrationRequest
+        {
+            Provider = "fcm",
+            Token = "provider-token",
+            AppVersion = "0.3.1",
+            ProtocolVersion = "0.3.1"
+        };
+
+        var json = JsonSerializer.Serialize(original);
+        Assert.Contains("app_version", json, StringComparison.Ordinal);
+        Assert.Contains("protocol_version", json, StringComparison.Ordinal);
+        Assert.NotNull(JsonSerializer.Deserialize<PushTokenRegistrationRequest>(json));
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<PushTokenRegistrationRequest>(
+            "{\"provider\":\"fcm\",\"token\":\"x\",\"app_version\":\"0.3.1\",\"protocol_version\":\"0.3.1\",\"extra\":true}"));
+    }
+
+    [Fact]
     public void 主机注册请求使用固定线协议字段()
     {
         var original = new RegisterHostKeyRequest(

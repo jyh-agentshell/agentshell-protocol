@@ -20,6 +20,7 @@ public sealed class P21OpenApiContractTests
         Assert.True(包含路径(paths, "/auth/renew"));
         Assert.True(包含路径(paths, "/devices/bind"));
         Assert.True(包含路径(paths, "/devices/bind/verify"));
+        Assert.True(包含路径(paths, "/devices/push-token"));
         Assert.True(包含路径(paths, "/sessions/report"));
         Assert.True(包含路径(paths, "/sessions/lifecycle"));
         Assert.True(包含路径(paths, "/sessions"));
@@ -28,6 +29,9 @@ public sealed class P21OpenApiContractTests
         Assert.Contains("protocol_min", specification, StringComparison.Ordinal);
         Assert.Contains("protocol_max", specification, StringComparison.Ordinal);
         Assert.Contains("feature_enabled", specification, StringComparison.Ordinal);
+        Assert.Contains("PushTokenRegistrationRequest", specification, StringComparison.Ordinal);
+        Assert.Contains("app_version", specification, StringComparison.Ordinal);
+        Assert.Contains("protocol_version", specification, StringComparison.Ordinal);
     }
 
     private static bool 包含路径(YamlMappingNode paths, string expected) =>
