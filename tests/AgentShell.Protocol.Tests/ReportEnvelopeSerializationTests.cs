@@ -9,7 +9,7 @@ public sealed class ReportEnvelopeSerializationTests
 {
     [Fact]
     public void P21协议包与Envelope使用同一版本() =>
-        Assert.Equal("0.3.0", typeof(ReportEnvelope).Assembly.GetName().Version!.ToString(3));
+        Assert.Equal("0.3.1", typeof(ReportEnvelope).Assembly.GetName().Version!.ToString(3));
 
     [Fact]
     public void ReportEnvelope使用固定snake_case和UTC毫秒时间戳()

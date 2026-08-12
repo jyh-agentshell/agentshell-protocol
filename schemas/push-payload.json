@@ -2,62 +2,29 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://agentshell.dev/schemas/push-payload.json",
   "title": "PushPayload",
-  "x-version": "0.2.0",
-  "description": "通过 FCM/JPush 推送到 Android 客户端的通知载荷",
+  "x-version": "0.3.1",
+  "description": "P2.3 最小隐私推送载荷；不承载终端、代码、命令、路径、diff 或凭据。",
   "type": "object",
-  "required": ["notification_id", "timestamp", "type"],
   "additionalProperties": false,
+  "required": ["protocol_version", "notification_id", "event_level", "host_id", "session_id", "state", "occurred_at", "expires_at", "collapse_key", "deep_link"],
   "properties": {
-    "notification_id": {
-      "type": "string",
-      "format": "uuid"
-    },
-    "timestamp": {
-      "type": "string",
-      "format": "date-time"
-    },
-    "type": {
-      "type": "string",
-      "enum": ["approval_required", "agent_error", "session_ended", "daemon_update_available", "binding_request"],
-      "description": "通知类型"
-    },
-    "title": {
-      "type": "string",
-      "description": "通知标题"
-    },
-    "body": {
-      "type": "string",
-      "description": "通知正文"
-    },
-    "data": {
+    "protocol_version": { "type": "string", "const": "0.3.1" },
+    "notification_id": { "type": "string", "format": "uuid" },
+    "event_level": { "type": "string", "enum": ["critical", "warning", "info"] },
+    "host_id": { "type": "string", "format": "uuid" },
+    "session_id": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "state": { "type": "string", "enum": ["running", "awaiting_approval", "idle", "error", "terminated"] },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "expires_at": { "type": "string", "format": "date-time" },
+    "collapse_key": { "type": "string", "minLength": 1, "maxLength": 1024 },
+    "deep_link": {
       "type": "object",
       "additionalProperties": false,
-      "description": "点击通知后传递给 App 的数据载荷",
+      "required": ["host_id", "session_id"],
       "properties": {
-        "session_id": { "type": "string" },
-        "host_id": { "type": "string" },
-        "agent_type": { "type": "string" },
-        "state": { "type": "string" },
-        "file_count": { "type": "integer" },
-        "action_url": {
-          "type": "string",
-          "format": "uri",
-          "description": "App 深层链接"
-        }
+        "host_id": { "type": "string", "format": "uuid" },
+        "session_id": { "type": "string", "minLength": 1, "maxLength": 512 }
       }
-    },
-    "priority": {
-      "type": "string",
-      "enum": ["high", "normal"],
-      "default": "high",
-      "description": "推送优先级。approval_required 为 high，其余为 normal"
-    },
-    "ttl_seconds": {
-      "type": "integer",
-      "minimum": 0,
-      "maximum": 86400,
-      "default": 300,
-      "description": "通知存活时间（秒），超时后不再投递"
     }
   }
 }

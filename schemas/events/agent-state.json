@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://agentshell.dev/schemas/events/agent-state.json",
   "title": "AgentStateEvent",
-  "x-version": "0.3.0",
+  "x-version": "0.3.1",
   "description": "守护进程上报的 Agent 状态变化事件",
   "type": "object",
   "required": ["event_id", "timestamp", "session_id", "agent_type", "state"],
