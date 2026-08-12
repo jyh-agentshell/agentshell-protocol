@@ -18,6 +18,45 @@ security:
   - bearerAuth: []
 
 paths:
+  /auth/device:
+    post:
+      summary: 获取 App 设备访问令牌
+      operationId: authenticateDevice
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceAuthRequest"
+      responses:
+        "200":
+          description: 设备令牌已签发
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceAuthResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /auth/renew:
+    post:
+      summary: 续期 daemon 访问令牌
+      operationId: renewDaemonToken
+      responses:
+        "200":
+          description: 续期成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RenewResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
   /hosts/registration-token:
     post:
       summary: 创建一次性主机注册令牌
@@ -81,55 +120,55 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "../schemas/events/agent-state.json"
+              $ref: "#/components/schemas/ReportEnvelope"
       responses:
         "200":
           description: 上报成功
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  accepted:
-                    type: boolean
-                  server_timestamp:
-                    type: string
-                    format: date-time
-                  upgrade_required:
-                    type: boolean
-                    description: daemon 版本过低，需要更新
-                  latest_version:
-                    type: string
-                    description: 最新 daemon 版本号
-                  latest_sha256:
-                    type: string
-                    description: 最新二进制 SHA256
+                $ref: "#/components/schemas/ReportAcceptedResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
-          description: 未认证
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "426":
+          $ref: "#/components/responses/UpgradeRequired"
         "429":
-          description: 上报过于频繁
+          $ref: "#/components/responses/TooManyRequests"
 
-  /sessions/{session_id}/status:
+  /sessions:
     get:
-      summary: 查询会话状态
-      description: 查询指定会话的当前 Agent 状态。Phase 2 实装。
-      x-implementation-status: stub
-      operationId: getSessionStatus
+      summary: 查询指定主机的当前会话快照
+      operationId: getSessionSnapshot
       parameters:
-        - name: session_id
-          in: path
+        - name: host_id
+          in: query
           required: true
           schema:
             type: string
+            format: uuid
       responses:
         "200":
-          description: 会话当前状态
+          description: 会话状态快照
           content:
             application/json:
               schema:
-                $ref: "../schemas/events/agent-state.json"
+                $ref: "#/components/schemas/SessionSnapshotResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
-          description: 会话不存在
+          $ref: "#/components/responses/NotFound"
+        "426":
+          $ref: "#/components/responses/UpgradeRequired"
+        "503":
+          $ref: "#/components/responses/FeatureDisabled"
 
   /sessions/lifecycle:
     post:
@@ -140,10 +179,22 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "../schemas/events/session-lifecycle.json"
+              $ref: "#/components/schemas/ReportEnvelope"
       responses:
         "200":
           description: 上报成功
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "426":
+          $ref: "#/components/responses/UpgradeRequired"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
 
   /devices/bind:
     post:
@@ -229,6 +280,124 @@ paths:
 
 components:
   schemas:
+    DeviceAuthRequest:
+      type: object
+      additionalProperties: false
+      required: ["device_id"]
+      properties:
+        device_id:
+          type: string
+          format: uuid
+        device_name:
+          type: string
+          maxLength: 128
+    DeviceAuthResponse:
+      type: object
+      additionalProperties: false
+      required: ["access_token", "expires_at", "token_type"]
+      properties:
+        access_token:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+        token_type:
+          type: string
+          enum: ["Bearer"]
+    RenewResponse:
+      type: object
+      additionalProperties: false
+      required: ["access_token", "token_type", "expires_in"]
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+          enum: ["Bearer"]
+        expires_in:
+          type: integer
+          minimum: 1
+    ReportEnvelope:
+      type: object
+      additionalProperties: false
+      required: ["protocol_version", "host_id", "timestamp", "nonce", "capabilities", "payload_type", "payload_base64", "payload_sha256", "signature"]
+      properties:
+        protocol_version:
+          type: string
+          pattern: "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        host_id:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+        nonce:
+          type: string
+        capabilities:
+          type: array
+          items:
+            type: string
+            enum: ["agent_state", "session_lifecycle"]
+          minItems: 1
+          uniqueItems: true
+        payload_type:
+          type: string
+          enum: ["agent_state", "session_lifecycle"]
+        payload_base64:
+          type: string
+        payload_sha256:
+          type: string
+          pattern: "^[a-f0-9]{64}$"
+        signature:
+          type: string
+    ReportAcceptedResponse:
+      type: object
+      additionalProperties: false
+      required: ["accepted", "server_timestamp"]
+      properties:
+        accepted:
+          type: boolean
+        server_timestamp:
+          type: string
+          format: date-time
+    SessionSnapshotItem:
+      type: object
+      additionalProperties: false
+      required: ["session_id", "state", "agent_type", "timestamp", "daemon_version"]
+      properties:
+        session_id:
+          type: string
+        state:
+          $ref: "../schemas/common.json#/definitions/agent_state"
+        agent_type:
+          $ref: "../schemas/common.json#/definitions/agent_type"
+        previous_state:
+          $ref: "../schemas/common.json#/definitions/agent_state"
+        timestamp:
+          type: string
+          format: date-time
+        daemon_version:
+          type: string
+    SessionSnapshotResponse:
+      type: object
+      additionalProperties: false
+      required: ["sessions", "server_timestamp", "realtime_enabled", "feature_enabled", "protocol_min", "protocol_max"]
+      properties:
+        sessions:
+          type: array
+          items:
+            $ref: "#/components/schemas/SessionSnapshotItem"
+        server_timestamp:
+          type: string
+          format: date-time
+        realtime_enabled:
+          type: boolean
+        feature_enabled:
+          type: boolean
+        protocol_min:
+          type: string
+        protocol_max:
+          type: string
     CreateRegistrationTokenResponse:
       type: object
       required: ["registration_token", "expires_at"]
@@ -285,6 +454,13 @@ components:
             - host_key_invalid
             - unauthorized
             - rate_limited
+            - host_forbidden
+            - host_not_found
+            - protocol_too_old
+            - protocol_too_new
+            - feature_disabled
+            - replay_detected
+            - signature_invalid
   responses:
     BadRequest:
       description: 请求无效；`code` 为 `registration_token_invalid` 或 `host_key_invalid`。
@@ -294,6 +470,18 @@ components:
             $ref: "#/components/schemas/ErrorResponse"
     Unauthorized:
       description: 未认证或认证无效；`code` 为 `unauthorized`。
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Forbidden:
+      description: 主机所有权、签名或 daemon 身份验证失败。
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: 请求的主机不存在。
       content:
         application/json:
           schema:
@@ -312,6 +500,18 @@ components:
             $ref: "#/components/schemas/ErrorResponse"
     TooManyRequests:
       description: 请求过于频繁；`code` 为 `rate_limited`。
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    UpgradeRequired:
+      description: Protocol 版本不在服务端支持窗口内。
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    FeatureDisabled:
+      description: 当前 P2 功能开关已关闭；SSH 终端仍可直接使用。
       content:
         application/json:
           schema:
