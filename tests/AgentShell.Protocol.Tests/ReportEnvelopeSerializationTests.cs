@@ -58,4 +58,16 @@ public sealed class ReportEnvelopeSerializationTests
         Assert.Contains("\"protocol_max\"", errorJson, StringComparison.Ordinal);
         Assert.DoesNotContain("ProtocolMinimum", errorJson, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void 实时快照枚举使用snake_case()
+    {
+        var snapshot = new HostStateSnapshot("0.3.0", "11111111-1111-4111-8111-111111111111", Guid.NewGuid(),
+            [new SessionSnapshotItem("host/tmux/main", AgentState.AwaitingApproval, AgentType.Codex, null, DateTimeOffset.UnixEpoch, "0.3.0")], DateTimeOffset.UnixEpoch);
+
+        var json = JsonSerializer.Serialize(snapshot);
+
+        Assert.Contains("\"state\":\"awaiting_approval\"", json, StringComparison.Ordinal);
+        Assert.Contains("\"protocol_version\":\"0.3.0\"", json, StringComparison.Ordinal);
+    }
 }

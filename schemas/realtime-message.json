@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentshell.dev/schemas/realtime-message.json",
+  "oneOf": [
+    { "$ref": "#/$defs/host_state_snapshot" },
+    { "$ref": "#/$defs/connection_diagnostics" }
+  ],
+  "$defs": {
+    "host_state_snapshot": {
+      "type": "object", "additionalProperties": false,
+      "required": ["protocol_version", "host_id", "snapshot_id", "sessions", "server_timestamp"],
+      "properties": {
+        "protocol_version": { "type": "string" }, "host_id": { "type": "string", "format": "uuid" },
+        "snapshot_id": { "type": "string", "format": "uuid" }, "sessions": { "type": "array" },
+        "server_timestamp": { "type": "string", "format": "date-time" }
+      }
+    },
+    "connection_diagnostics": {
+      "type": "object", "additionalProperties": false,
+      "required": ["host_id", "is_online", "online_device_count", "realtime_enabled"],
+      "properties": {
+        "host_id": { "type": "string", "format": "uuid" }, "is_online": { "type": "boolean" },
+        "online_device_count": { "type": "integer", "minimum": 0 }, "last_active_at": { "type": ["string", "null"], "format": "date-time" },
+        "disconnected_at": { "type": ["string", "null"], "format": "date-time" }, "realtime_enabled": { "type": "boolean" }
+      }
+    }
+  }
+}
