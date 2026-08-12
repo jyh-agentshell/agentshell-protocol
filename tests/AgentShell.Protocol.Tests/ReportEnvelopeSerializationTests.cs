@@ -42,4 +42,20 @@ public sealed class ReportEnvelopeSerializationTests
     {
         Assert.Equal(expected, ProtocolTimestamp.TryParse(value, out _));
     }
+
+    [Fact]
+    public void 会话快照与协议错误使用稳定snake_case()
+    {
+        var snapshot = new SessionSnapshotResponse(
+            [new SessionSnapshotItem("host/tmux/main", AgentState.Running, AgentType.Codex, null, DateTimeOffset.UnixEpoch, "0.3.0")],
+            DateTimeOffset.UnixEpoch, true, true, "0.3.0", "0.4.0");
+
+        var snapshotJson = JsonSerializer.Serialize(snapshot);
+        var errorJson = JsonSerializer.Serialize(new ProtocolError("protocol_too_old", ProtocolMinimum: "0.3.0", ProtocolMaximum: "0.4.0"));
+
+        Assert.Contains("\"server_timestamp\"", snapshotJson, StringComparison.Ordinal);
+        Assert.Contains("\"protocol_min\"", snapshotJson, StringComparison.Ordinal);
+        Assert.Contains("\"protocol_max\"", errorJson, StringComparison.Ordinal);
+        Assert.DoesNotContain("ProtocolMinimum", errorJson, StringComparison.Ordinal);
+    }
 }
