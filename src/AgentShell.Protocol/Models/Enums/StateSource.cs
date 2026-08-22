@@ -5,7 +5,7 @@ namespace AgentShell.Protocol.Models;
 /// <summary>
 /// 状态检测来源
 /// </summary>
-[JsonConverter(typeof(JsonStringEnumConverter))]
+[JsonConverter(typeof(JsonStringEnumConverter<StateSource>))]
 public enum StateSource
 {
     /// <summary>ANSI OSC 结构化标记（优先级高）</summary>

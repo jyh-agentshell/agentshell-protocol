@@ -17,6 +17,8 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.110"
+      - name: 校验 OpenAPI 契约
+        run: npx --yes @redocly/cli@latest lint specs/api-v1.yaml
       - name: 构建、Schema/OpenAPI 契约与序列化测试
         run: |
           dotnet restore src/AgentShell.Protocol/AgentShell.Protocol.csproj

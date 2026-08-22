@@ -5,7 +5,7 @@ namespace AgentShell.Protocol.Models;
 /// <summary>
 /// 终端复用器类型
 /// </summary>
-[JsonConverter(typeof(JsonStringEnumConverter))]
+[JsonConverter(typeof(JsonStringEnumConverter<MultiplexerType>))]
 public enum MultiplexerType
 {
     /// <summary>tmux</summary>

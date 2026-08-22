@@ -9,9 +9,12 @@ info:
   version: "1.0.0"
   contact:
     name: AgentShell Project
+  license:
+    name: Apache-2.0
+    identifier: Apache-2.0
 
 servers:
-  - url: https://api.agentshell.dev/v1
+  - url: https://agentshell.servicelab.cn/api
     description: 生产环境
 
 security:
@@ -37,9 +40,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/DeviceAuthResponse"
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/ProblemBadRequest"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   /auth/renew:
     post:
@@ -56,6 +61,48 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+
+  /auth/refresh:
+    post:
+      summary: 轮换 App 设备访问令牌
+      operationId: refreshDeviceToken
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshTokenRequest"
+      responses:
+        "200":
+          description: 访问令牌和 Refresh Token 已轮换
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceAuthResponse"
+        "400":
+          $ref: "#/components/responses/ProblemBadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /auth/revoke:
+    post:
+      summary: 撤销 App 设备 Refresh Token
+      operationId: revokeDeviceToken
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshTokenRequest"
+      responses:
+        "204":
+          description: 撤销完成（幂等）
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
 
   /hosts/registration-token:
     post:
@@ -152,6 +199,20 @@ paths:
           schema:
             type: string
             format: uuid
+        - name: limit
+          in: query
+          required: false
+          description: 返回最近状态的最大会话数，服务端限制在 1--200。
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+        - name: cursor
+          in: query
+          required: false
+          description: 上一页返回的 opaque 游标；按状态时间和 session_id keyset 翻页。
+          schema:
+            type: string
       responses:
         "200":
           description: 会话状态快照
@@ -167,8 +228,10 @@ paths:
           $ref: "#/components/responses/NotFound"
         "426":
           $ref: "#/components/responses/UpgradeRequired"
+        "402":
+          $ref: "#/components/responses/ProblemPaymentRequired"
         "503":
-          $ref: "#/components/responses/FeatureDisabled"
+          $ref: "#/components/responses/ProblemFeatureDisabled"
 
   /sessions/lifecycle:
     post:
@@ -212,10 +275,10 @@ paths:
           description: 返回挑战 nonce
           content:
             application/json:
-            schema:
-              $ref: "#/components/schemas/BindInitiateResponse"
+              schema:
+                $ref: "#/components/schemas/BindInitiateResponse"
         "400":
-          description: 绑定码无效或已过期
+          $ref: "#/components/responses/ProblemBadRequest"
 
   /devices/bind/verify:
     post:
@@ -233,10 +296,12 @@ paths:
           description: 绑定成功
           content:
             application/json:
-            schema:
-              $ref: "#/components/schemas/BindConfirmResponse"
+              schema:
+                $ref: "#/components/schemas/BindConfirmResponse"
         "403":
           description: 签名验证失败
+        "400":
+          $ref: "#/components/responses/ProblemBadRequest"
 
   /devices/push-token:
     put:
@@ -253,7 +318,7 @@ paths:
         "204":
           description: 登记成功，无响应体。
         "400":
-          $ref: "#/components/responses/BadRequest"
+          $ref: "#/components/responses/ProblemBadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "429":
@@ -270,12 +335,33 @@ paths:
         "429":
           $ref: "#/components/responses/TooManyRequests"
 
+  /notifications/events:
+    post:
+      summary: 上报通知行动事件
+      description: 设备仅上报 clicked 事件；服务端只保存通知元数据，不保存通知内容。
+      operationId: reportNotificationEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificationEventRequest"
+      responses:
+        "204":
+          description: 已接受或重复事件
+        "400":
+          $ref: "#/components/responses/ProblemBadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
 components:
   schemas:
     DeviceAuthRequest:
       type: object
       additionalProperties: false
-      required: ["device_id"]
+      required: ["device_id", "region"]
       properties:
         device_id:
           type: string
@@ -283,19 +369,50 @@ components:
         device_name:
           type: string
           maxLength: 128
+        region:
+          type: string
+          enum: ["global", "china"]
     DeviceAuthResponse:
       type: object
       additionalProperties: false
-      required: ["access_token", "expires_at", "token_type"]
+      required: ["access_token", "expires_at", "refresh_token", "refresh_expires_at", "token_type"]
       properties:
         access_token:
           type: string
         expires_at:
           type: string
           format: date-time
+        refresh_token:
+          type: string
+          minLength: 43
+        refresh_expires_at:
+          type: string
+          format: date-time
         token_type:
           type: string
           enum: ["Bearer"]
+    RefreshTokenRequest:
+      type: object
+      additionalProperties: false
+      required: ["refresh_token"]
+      properties:
+        refresh_token:
+          type: string
+          minLength: 43
+    NotificationEventRequest:
+      type: object
+      additionalProperties: false
+      required: ["notification_id", "event_type", "occurred_at"]
+      properties:
+        notification_id:
+          type: string
+          format: uuid
+        event_type:
+          type: string
+          enum: [clicked]
+        occurred_at:
+          type: string
+          format: date-time
     BindInitiateRequest:
       type: object
       additionalProperties: false
@@ -448,12 +565,15 @@ components:
     SessionSnapshotResponse:
       type: object
       additionalProperties: false
-      required: ["sessions", "server_timestamp", "realtime_enabled", "feature_enabled", "protocol_min", "protocol_max"]
+      required: ["sessions", "next_cursor", "server_timestamp", "realtime_enabled", "feature_enabled", "protocol_min", "protocol_max"]
       properties:
         sessions:
           type: array
           items:
             $ref: "#/components/schemas/SessionSnapshotItem"
+        next_cursor:
+          type: [string, "null"]
+          description: 还有下一页时返回的 opaque 游标。
         server_timestamp:
           type: string
           format: date-time
@@ -528,7 +648,43 @@ components:
             - feature_disabled
             - replay_detected
             - signature_invalid
+    ProblemDetails:
+      type: object
+      description: 未预期服务端错误的 RFC 7807 响应；不包含堆栈或敏感配置。
+      required: ["type", "title", "status", "detail"]
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        traceId:
+          type: string
+        code:
+          type: string
   responses:
+    ProblemBadRequest:
+      description: 请求无效；返回 RFC 7807 ProblemDetails。
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
+    ProblemPaymentRequired:
+      description: 云端控制面暂不可用；客户端可以退化到 SSH 直连。
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
+    ProblemFeatureDisabled:
+      description: 当前功能开关已关闭；客户端可以退化到 SSH 直连。
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
     BadRequest:
       description: 请求无效；`code` 为 `registration_token_invalid` 或 `host_key_invalid`。
       content:
@@ -577,12 +733,12 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
-    FeatureDisabled:
-      description: 当前 P2 功能开关已关闭；SSH 终端仍可直接使用。
+    InternalServerError:
+      description: 服务端未预期错误；客户端可使用 traceId 联系运维。
       content:
-        application/json:
+        application/problem+json:
           schema:
-            $ref: "#/components/schemas/ErrorResponse"
+            $ref: "#/components/schemas/ProblemDetails"
   securitySchemes:
     bearerAuth:
       type: http

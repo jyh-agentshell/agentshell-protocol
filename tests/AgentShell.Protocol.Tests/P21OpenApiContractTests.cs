@@ -18,9 +18,12 @@ public sealed class P21OpenApiContractTests
 
         Assert.True(包含路径(paths, "/auth/device"));
         Assert.True(包含路径(paths, "/auth/renew"));
+        Assert.True(包含路径(paths, "/auth/refresh"));
+        Assert.True(包含路径(paths, "/auth/revoke"));
         Assert.True(包含路径(paths, "/devices/bind"));
         Assert.True(包含路径(paths, "/devices/bind/verify"));
         Assert.True(包含路径(paths, "/devices/push-token"));
+        Assert.True(包含路径(paths, "/notifications/events"));
         Assert.True(包含路径(paths, "/sessions/report"));
         Assert.True(包含路径(paths, "/sessions/lifecycle"));
         Assert.True(包含路径(paths, "/sessions"));
@@ -32,6 +35,14 @@ public sealed class P21OpenApiContractTests
         Assert.Contains("PushTokenRegistrationRequest", specification, StringComparison.Ordinal);
         Assert.Contains("app_version", specification, StringComparison.Ordinal);
         Assert.Contains("protocol_version", specification, StringComparison.Ordinal);
+        Assert.Contains("region", specification, StringComparison.Ordinal);
+        Assert.Contains("ProblemDetails", specification, StringComparison.Ordinal);
+        Assert.Contains("InternalServerError", specification, StringComparison.Ordinal);
+        Assert.Contains("RefreshTokenRequest", specification, StringComparison.Ordinal);
+        Assert.Contains("refresh_expires_at", specification, StringComparison.Ordinal);
+        Assert.Contains("NotificationEventRequest", specification, StringComparison.Ordinal);
+        Assert.Contains("ProblemFeatureDisabled", specification, StringComparison.Ordinal);
+        Assert.Contains("next_cursor", specification, StringComparison.Ordinal);
     }
 
     private static bool 包含路径(YamlMappingNode paths, string expected) =>

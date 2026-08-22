@@ -5,7 +5,7 @@ namespace AgentShell.Protocol.Models;
 /// <summary>
 /// Agent 运行状态
 /// </summary>
-[JsonConverter(typeof(JsonStringEnumConverter))]
+[JsonConverter(typeof(JsonStringEnumConverter<AgentState>))]
 public enum AgentState
 {
     /// <summary>正在执行任务</summary>

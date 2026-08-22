@@ -5,7 +5,7 @@ namespace AgentShell.Protocol.Models;
 /// <summary>
 /// Agent CLI 工具类型
 /// </summary>
-[JsonConverter(typeof(JsonStringEnumConverter))]
+[JsonConverter(typeof(JsonStringEnumConverter<AgentType>))]
 public enum AgentType
 {
     /// <summary>Codex CLI</summary>
